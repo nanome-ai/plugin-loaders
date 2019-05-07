@@ -1,15 +1,17 @@
-import requests
 import tempfile
 import traceback
 import os
 import nanome
 from nanome.util import Logs
+from ftplib import FTP
 
 ##################
 ##### CONFIG #####
 ##################
 
-url = "ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-{{NAME}}/map/emd_{{NAME}}.map.gz" # {{NAME}} indicates where to write emdb code
+url = "ftp.wwpdb.org" 
+path = "/pub/emdb/structures/EMD-{{NAME}}/map/"
+fileName = "emd_{{NAME}}.map.gz" # {{NAME}} indicates where to write emdb code
 type = "EM"
 
 ##################
@@ -55,12 +57,16 @@ class EMDBLoader(nanome.PluginInstance):
         self.update_menu(self.__menu)
 
     def load_cry_em(self, code):
-        url_to_load = url.replace("{{NAME}}", code)
-        response = requests.get(url_to_load)
-        file = tempfile.NamedTemporaryFile(delete=False)
         self._name = code
+
+        ftp = FTP(url)
+        ftp.login()
+        ftp.cwd(path.replace("{{NAME}}", code))
+
+        file = tempfile.NamedTemporaryFile(delete=False)
         try:
-            file.write(response.text.encode("utf-8"))
+            ftp.retrbinary("RETR " + fileName.replace("{{NAME}}", code), file.write, 1024)
+            ftp.quit()
             file.close()
             self.upload_cyro_em(file.name, self.on_em_uploaded)
         except: # Making sure temp file gets deleted in case of problem
