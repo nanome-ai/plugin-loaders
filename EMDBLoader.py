@@ -63,7 +63,7 @@ class EMDBLoader(nanome.PluginInstance):
         ftp.login()
         ftp.cwd(path.replace("{{NAME}}", code))
 
-        file = tempfile.NamedTemporaryFile(delete=False)
+        file = tempfile.NamedTemporaryFile(suffix=".gz", delete=False)
         try:
             ftp.retrbinary("RETR " + fileName.replace("{{NAME}}", code), file.write, 1024)
             ftp.quit()
@@ -74,7 +74,7 @@ class EMDBLoader(nanome.PluginInstance):
         os.remove(file.name)
 
     def on_em_uploaded(self):
-        pass
+        nanome.util.Logs.debug("loaded")
 
 if __name__ == "__main__":
     plugin = nanome.Plugin("EM DB Loader", "Load a cryo-EM file from database", "Loading", False)
