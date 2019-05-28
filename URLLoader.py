@@ -65,18 +65,21 @@ class URLLoader(nanome.PluginInstance):
             file.close()
             if type == "PDB":
                 complex = nanome.structure.Complex.io.from_pdb(file.name)
-                self.add_bonds([complex], self.complex_ready)
+                self.add_bonds([complex], self.bonds_ready)
             elif type == "SDF":
                 complex = nanome.structure.Complex.io.from_sdf(file.name)
-                self.complex_ready([complex])
+                self.bonds_ready([complex])
             elif type == "MMCIF":
                 complex = nanome.structure.Complex.io.from_mmcif(file.name)
-                self.add_bonds([complex], self.complex_ready)
+                self.add_bonds([complex], self.bonds_ready)
             else:
                 Logs.error("Unknown file type")
         except: # Making sure temp file gets deleted in case of problem
             Logs.error("Error while loading molecule:\n", traceback.format_exc())
         os.remove(file.name)
+
+    def bonds_ready(self, complex_list):
+        self.add_dssp(complex_list, self.complex_ready)
 
     def complex_ready(self, complex_list):
         complex_list[0].molecular.name = self._name
