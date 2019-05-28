@@ -1,6 +1,6 @@
 import nanome
 
-class APILoaderMenu():
+class WebLoaderMenu():
     def __init__(self, plugin):
         self.__plugin = plugin
         self.__selected_file = None
