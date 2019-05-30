@@ -69,7 +69,7 @@ class WebLoader(nanome.PluginInstance):
             ip += ":" + str(SERVER_PORT)
         return ip
 
-if __name__ == "__main__":
+def main():
     # Plugin server (for Web)
     server = WebLoaderServer(SERVER_PORT)
     server.start()
@@ -78,3 +78,6 @@ if __name__ == "__main__":
     plugin = nanome.Plugin("Load from Web", "Gives access to a folder of molecules that can be modified by a Web UI", "Loading", False)
     plugin.set_plugin_class(WebLoader)
     plugin.run('127.0.0.1', 8888)
+
+if __name__ == "__main__":
+    main()

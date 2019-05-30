@@ -85,7 +85,10 @@ class URLLoader(nanome.PluginInstance):
         complex_list[0].molecular.name = self._name
         self.add_to_workspace(complex_list)
 
-if __name__ == "__main__":
+def main():
     plugin = nanome.Plugin("URL Loader", "Load molecule from database", "Loading", False)
     plugin.set_plugin_class(URLLoader)
     plugin.run('127.0.0.1', 8888)
+
+if __name__ == "__main__":
+    main()
