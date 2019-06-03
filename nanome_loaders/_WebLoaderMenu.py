@@ -1,6 +1,6 @@
 import nanome
 
-class WebLoaderMenu():
+class _WebLoaderMenu():
     def __init__(self, plugin):
         self.__plugin = plugin
         self.__selected_file = None
@@ -12,7 +12,7 @@ class WebLoaderMenu():
                 self.__plugin.load_molecule(self.__selected_file.text.value_idle)
 
         # Request and set menu window
-        menu = nanome.ui.Menu.get_plugin_menu()
+        menu = self.__plugin.menu
         menu.title = "Web Files"
         self.__menu = menu
 

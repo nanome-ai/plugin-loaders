@@ -23,12 +23,11 @@ class URLLoader(nanome.PluginInstance):
             self.load_molecule(self.__field.input_text)
 
         # Request and set menu window
-        menu = nanome.ui.Menu.get_plugin_menu()
+        menu = self.menu
         menu.title = "URL Loader"
         menu._width = 0.8
         menu._height = 0.7
         menu.enabled = True
-        self.__menu = menu
 
         # Create all needed layout nodes
         menu.root.clear_children()
@@ -52,8 +51,8 @@ class URLLoader(nanome.PluginInstance):
 
     # When user clicks on "Run", open menu
     def on_run(self):
-        self.__menu.enabled = True
-        self.update_menu(self.__menu)
+        self.menu.enabled = True
+        self.update_menu(self.menu)
 
     def load_molecule(self, code):
         url_to_load = url.replace("{{NAME}}", code)
@@ -64,13 +63,13 @@ class URLLoader(nanome.PluginInstance):
             file.write(response.text.encode("utf-8"))
             file.close()
             if type == "PDB":
-                complex = nanome.structure.Complex.io.from_pdb(file.name)
+                complex = nanome.structure.Complex.io.from_pdb(path=file.name)
                 self.add_bonds([complex], self.bonds_ready)
             elif type == "SDF":
-                complex = nanome.structure.Complex.io.from_sdf(file.name)
+                complex = nanome.structure.Complex.io.from_sdf(path=file.name)
                 self.bonds_ready([complex])
             elif type == "MMCIF":
-                complex = nanome.structure.Complex.io.from_mmcif(file.name)
+                complex = nanome.structure.Complex.io.from_mmcif(path=file.name)
                 self.add_bonds([complex], self.bonds_ready)
             else:
                 Logs.error("Unknown file type")

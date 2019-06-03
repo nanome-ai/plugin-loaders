@@ -2,8 +2,8 @@ import nanome
 from nanome.util import Logs
 from nanome.api.structure import Complex
 
-from _WebLoaderServer import WebLoaderServer
-from _WebLoaderMenu import WebLoaderMenu
+from ._WebLoaderServer import _WebLoaderServer
+from . import _WebLoaderMenu
 
 import os
 import socket
@@ -14,7 +14,7 @@ SERVER_PORT = 80
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
     def start(self):
-        self.__menu = WebLoaderMenu(self)
+        self.__menu = _WebLoaderMenu._WebLoaderMenu(self)
         self.__menu.build_menu(WebLoader.get_server_url())
         self.__refresh()
         self.__timer = timer()
@@ -25,7 +25,7 @@ class WebLoader(nanome.PluginInstance):
             self.__timer = timer()
 
     def __refresh(self):
-        file_list = [filename for filename in os.listdir("_WebLoader") if WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.listdir("nanome_loaders/_WebLoader") if _WebLoaderServer.file_filter(filename)]
         self.__menu.update_list(file_list)
 
     def on_run(self):
@@ -33,15 +33,16 @@ class WebLoader(nanome.PluginInstance):
 
     def load_molecule(self, name):
         extension = name.split(".")[-1]
+        file_path = os.path.join(os.path.dirname(__file__), '_WebLoader/') + name
         if extension == "pdb":
-            complex = Complex.io.from_pdb("_WebLoader/" + name)
+            complex = Complex.io.from_pdb(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
             return
         elif extension == "sdf":
-            complex = Complex.io.from_sdf("_WebLoader/" + name)
+            complex = Complex.io.from_sdf(path=file_path)
             self.bonds_ready([complex])
         elif extension == "cif":
-            complex = Complex.io.from_mmcif("_WebLoader/" + name)
+            complex = Complex.io.from_mmcif(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
             return
         else:
@@ -71,7 +72,7 @@ class WebLoader(nanome.PluginInstance):
 
 def main():
     # Plugin server (for Web)
-    server = WebLoaderServer(SERVER_PORT)
+    server = _WebLoaderServer(SERVER_PORT)
     server.start()
 
     # Plugin

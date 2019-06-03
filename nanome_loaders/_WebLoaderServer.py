@@ -44,7 +44,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         response = dict()
         response['success'] = True
         response['file_list'] = []
-        file_list = [filename for filename in os.listdir(".") if WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.listdir(".") if _WebLoaderServer.file_filter(filename)]
         for file in file_list:
             response['file_list'].append(file)
         self.wfile.write(json.dumps(response).encode("utf-8"))
@@ -153,7 +153,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # If file is not supported
-            if not WebLoaderServer.file_filter(file_name):
+            if not _WebLoaderServer.file_filter(file_name):
                 self._send_json_error(200, file_name + " format not supported")
                 return
 
@@ -176,7 +176,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         try:
             if file != "":
-                if WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
+                if _WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
                     os.remove(file)
         except:
             self._send_json_error(200, "Cannot find file to delete")
@@ -189,9 +189,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         if enable_logs:
             http.server.BaseHTTPRequestHandler.log_message(self, format, *args)
 
-class WebLoaderServer():
+class _WebLoaderServer():
     def __init__(self, port):
-        self.__process = Process(target=WebLoaderServer._start_process, args=(port,))
+        self.__process = Process(target=_WebLoaderServer._start_process, args=(port,))
 
     @staticmethod
     def file_filter(name):
