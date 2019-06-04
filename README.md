@@ -1,5 +1,10 @@
 # Nanome - Loaders
 
+### A linux-only molecule loader plugin for Nanome through a URL or a Drag-and-Drop Web Interface.
+
+This works for both Nanome & Nanome Curie (Quest edition).
+
+
 - URL Loader will load a molecule from RCSB, by its molecular code
 - Web Loader will start a web server. Other people can upload molecules to it, and they will appear in Nanome
 
