@@ -130,7 +130,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 i += 4
                 next_i = i
                 while next_i + 1 < len(body_arr):
-                    if body_arr[next_i][-1] != '\r':
+                    if len(body_arr[next_i]) == 0 or body_arr[next_i][-1] != '\r':
                         body_arr[next_i] += '\r'
                     if body_arr[next_i + 1].startswith("Content-") and body_arr[next_i].startswith("--"):
                         next_i -= 1
