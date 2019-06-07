@@ -25,7 +25,7 @@ class WebLoader(nanome.PluginInstance):
             self.__timer = timer()
 
     def __refresh(self):
-        file_list = [filename for filename in os.listdir("nanome_loaders/_WebLoader") if _WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.path.join(os.path.dirname(__file__), '_WebLoader') if _WebLoaderServer.file_filter(filename)]
         self.__menu.update_list(file_list)
 
     def on_run(self):
