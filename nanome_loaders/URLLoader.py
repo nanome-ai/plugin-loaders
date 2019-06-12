@@ -19,7 +19,12 @@ type = "MMCIF" # PDB / SDF / MMCIF
 
 class URLLoader(nanome.PluginInstance):
     def start(self):
+        self._loading = False
+
         def btn_click(button):
+            if self._loading == True:
+                return
+            self._loading = True
             self.load_molecule(self.__field.input_text)
 
         # Request and set menu window
@@ -74,6 +79,7 @@ class URLLoader(nanome.PluginInstance):
             else:
                 Logs.error("Unknown file type")
         except: # Making sure temp file gets deleted in case of problem
+            self._loading = False
             Logs.error("Error while loading molecule:\n", traceback.format_exc())
         os.remove(file.name)
 
@@ -81,6 +87,7 @@ class URLLoader(nanome.PluginInstance):
         self.add_dssp(complex_list, self.complex_ready)
 
     def complex_ready(self, complex_list):
+        self._loading = False
         complex_list[0].molecular.name = self._name
         self.add_to_workspace(complex_list)
 
