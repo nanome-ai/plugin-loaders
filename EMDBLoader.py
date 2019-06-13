@@ -24,7 +24,7 @@ class EMDBLoader(nanome.PluginInstance):
             self.load_cry_em(self.__field.input_text)
 
         # Request and set menu window
-        menu = nanome.ui.Menu.get_plugin_menu()
+        menu = self.menu
         menu.title = "EM DB Loader"
         menu._width = 0.8
         menu._height = 0.7
