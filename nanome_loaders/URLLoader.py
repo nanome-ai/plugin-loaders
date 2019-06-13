@@ -19,16 +19,20 @@ type = "MMCIF" # PDB / SDF / MMCIF
 
 class URLLoader(nanome.PluginInstance):
     def start(self):
+        self._loading = False
+
         def btn_click(button):
+            if self._loading == True:
+                return
+            self._loading = True
             self.load_molecule(self.__field.input_text)
 
         # Request and set menu window
-        menu = nanome.ui.Menu.get_plugin_menu()
+        menu = self.menu
         menu.title = "URL Loader"
         menu._width = 0.8
         menu._height = 0.7
         menu.enabled = True
-        self.__menu = menu
 
         # Create all needed layout nodes
         menu.root.clear_children()
@@ -52,8 +56,8 @@ class URLLoader(nanome.PluginInstance):
 
     # When user clicks on "Run", open menu
     def on_run(self):
-        self.__menu.enabled = True
-        self.update_menu(self.__menu)
+        self.menu.enabled = True
+        self.update_menu(self.menu)
 
     def load_molecule(self, code):
         url_to_load = url.replace("{{NAME}}", code)
@@ -64,25 +68,33 @@ class URLLoader(nanome.PluginInstance):
             file.write(response.text.encode("utf-8"))
             file.close()
             if type == "PDB":
-                complex = nanome.structure.Complex.io.from_pdb(file.name)
-                self.add_bonds([complex], self.complex_ready)
+                complex = nanome.structure.Complex.io.from_pdb(path=file.name)
+                self.add_bonds([complex], self.bonds_ready)
             elif type == "SDF":
-                complex = nanome.structure.Complex.io.from_sdf(file.name)
-                self.complex_ready([complex])
+                complex = nanome.structure.Complex.io.from_sdf(path=file.name)
+                self.bonds_ready([complex])
             elif type == "MMCIF":
-                complex = nanome.structure.Complex.io.from_mmcif(file.name)
-                self.add_bonds([complex], self.complex_ready)
+                complex = nanome.structure.Complex.io.from_mmcif(path=file.name)
+                self.add_bonds([complex], self.bonds_ready)
             else:
                 Logs.error("Unknown file type")
         except: # Making sure temp file gets deleted in case of problem
+            self._loading = False
             Logs.error("Error while loading molecule:\n", traceback.format_exc())
         os.remove(file.name)
 
+    def bonds_ready(self, complex_list):
+        self.add_dssp(complex_list, self.complex_ready)
+
     def complex_ready(self, complex_list):
+        self._loading = False
         complex_list[0].molecular.name = self._name
         self.add_to_workspace(complex_list)
 
-if __name__ == "__main__":
+def main():
     plugin = nanome.Plugin("URL Loader", "Load molecule from database", "Loading", False)
     plugin.set_plugin_class(URLLoader)
     plugin.run('127.0.0.1', 8888)
+
+if __name__ == "__main__":
+    main()
