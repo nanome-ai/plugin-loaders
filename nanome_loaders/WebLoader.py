@@ -4,7 +4,7 @@ from nanome.api.structure import Complex
 
 from ._WebLoaderServer import _WebLoaderServer
 from . import _WebLoaderMenu
-
+from PPTReader.PPTReader import PPTReader
 import os
 import socket
 from timeit import default_timer as timer
@@ -14,22 +14,30 @@ SERVER_PORT = 80
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
     def start(self):
-        self.__menu = _WebLoaderMenu._WebLoaderMenu(self)
-        self.__menu.build_menu(WebLoader.get_server_url())
+        self._web_loader_menu = _WebLoaderMenu._WebLoaderMenu(self)
+        self._web_loader_menu.build_menu(WebLoader.get_server_url())
         self.__refresh()
         self.__timer = timer()
+        self._ppt_reader = None
 
     def update(self):
-        if timer() - self.__timer >= 3.0:
-            self.__refresh()
-            self.__timer = timer()
+        self._ppt_reader.update()
+        if (self._web_loader_menu.is_open()):
+            if timer() - self.__timer >= 3.0:
+                self.__refresh()
+                self.__timer = timer()
+
+    def select_menu(self, menu):
+        self.menu = menu
+        self.menu.enabled = True
+        self.update_menu(self.menu)
 
     def __refresh(self):
         file_list = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if _WebLoaderServer.file_filter(filename)]
-        self.__menu.update_list(file_list)
+        self._web_loader_menu.update_list(file_list)
 
     def on_run(self):
-        self.__menu.open_menu()
+        self._web_loader_menu.open_menu()
 
     def load_molecule(self, name):
         extension = name.split(".")[-1]
@@ -45,6 +53,9 @@ class WebLoader(nanome.PluginInstance):
             complex = Complex.io.from_mmcif(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
             return
+        elif extension == "ppt":
+            with open(file_path) as ppt:
+                self.display_ppt(ppt)
         else:
             Logs.warning("Unknown file extension for file", name)
             return
@@ -69,6 +80,12 @@ class WebLoader(nanome.PluginInstance):
         if SERVER_PORT != 80:
             ip += ":" + str(SERVER_PORT)
         return ip
+
+    def display_ppt(self, file):
+        if (self._ppt_reader == None):
+            self._ppt_reader = PPTReader(self, self._web_loader_menu.open_menu)
+        self._ppt_reader.set_ppt(file)
+        self._ppt_reader.open_menu()
 
 def main():
     # Plugin server (for Web)
