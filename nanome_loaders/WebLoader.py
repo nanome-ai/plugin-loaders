@@ -4,7 +4,7 @@ from nanome.api.structure import Complex
 
 from ._WebLoaderServer import _WebLoaderServer
 from . import _WebLoaderMenu
-from PPTReader.PPTReader import PPTReader
+from .PPTReader import PPTReader
 import os
 import socket
 from timeit import default_timer as timer
@@ -21,7 +21,8 @@ class WebLoader(nanome.PluginInstance):
         self._ppt_reader = None
 
     def update(self):
-        self._ppt_reader.update()
+        if self._ppt_reader:
+            self._ppt_reader.update()
         if (self._web_loader_menu.is_open()):
             if timer() - self.__timer >= 3.0:
                 self.__refresh()
@@ -53,7 +54,7 @@ class WebLoader(nanome.PluginInstance):
             complex = Complex.io.from_mmcif(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
             return
-        elif extension == "ppt":
+        elif extension == "ppt" or extension == "pptx":
             with open(file_path) as ppt:
                 self.display_ppt(ppt)
         else:
