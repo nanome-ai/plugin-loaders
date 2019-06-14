@@ -1,3 +1,4 @@
+import urllib
 import http.server
 import socketserver
 from urllib.parse import urlparse
@@ -29,6 +30,72 @@ def get_type(format):
         return Types[format]
     except:
         return Types[""]
+
+class DataManager(object):
+    def __init__(self):
+        self.newline_length = 1
+        self.data = bytes()
+        self.boundary = None
+        self.byte = 0
+        self.file_name = ""
+        self.body = bytes()
+
+    def find_boundary(self):
+        while not self.done():
+            n = self.get_current()
+            if n == 0x0A:
+                self.newline_length = 1
+                self.boundary = self.data[:self.byte]
+                return
+            if (n == 0x0D):
+                self.newline_length = 2
+                self.boundary = self.data[:self.byte]
+                return
+            self.move_next_utf8()
+
+    def is_newline(self):
+        result = False
+        curr_byte = self.get_current()
+        if (self.newline_length == 1):
+            result = curr_byte == 0x0A
+        elif (self.newline_length == 2):
+            result = curr_byte == 0x0D 
+            if (result):
+                result = self.data[self.byte + 1] == 0x0A
+        return result
+
+    def find_newline(self):
+        while(not self.is_newline()):
+            self.move_next()
+
+    def curr_index(self):
+        return self.byte
+
+    def get_current(self):
+        return self.data[self.byte]
+
+    def move_next(self):
+        if (self.is_newline()):
+            self.byte += self.newline_length
+        else:
+            self.byte +=1
+
+    def move_next_utf8(self):
+        n = self.get_current()
+        if n < 0x80:
+            self.byte += 1            
+        elif n < 0xc0:
+            self.byte += 1
+        elif n < 0xe0:
+            self.byte += 3
+        else:
+            self.byte += 4
+
+    def done(self):
+        return self.byte >= len(self.data)
+
+    def split(self, start, end):
+        return self.data[start:end]
 
 # Class handling HTTP requests
 class RequestHandler(http.server.BaseHTTPRequestHandler):
@@ -85,6 +152,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         try:
             parsed_url = urlparse(self.path)
             path = parsed_url.path
+            path = urllib.parse.unquote(path)
         except:
             pass
 
@@ -113,36 +181,24 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             content_len = int(self.headers.get('Content-Length'))
-            body = self.rfile.read(content_len).decode("utf-8")
-
-            # Parse multipart form
-            body_arr = body.split("\n")[:-2]
+            data = self.rfile.read(content_len)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
             self._send_json_error(200, "Parsing problem")
             return
 
-        i = 0
-        while i < len(body_arr):
-            try:
-                m = re.search('filename="(.*)"', body_arr[i + 1])
-                file_name = m.group(1)
-                i += 4
-                next_i = i
-                while next_i + 1 < len(body_arr):
-                    if len(body_arr[next_i]) == 0 or body_arr[next_i][-1] != '\r':
-                        body_arr[next_i] += '\r'
-                    if body_arr[next_i + 1].startswith("Content-") and body_arr[next_i].startswith("--"):
-                        next_i -= 1
-                        break
-                    next_i += 1
-                next_i += 1
-                file_body = ("".join(body_arr[i:next_i]))[:-1]
-                i = next_i
-            except:
-                Logs.warning("Error trying to parse request:\n", traceback.format_exc())
-                self._send_json_error(200, "Parsing problem")
-                return
+        data_manager = DataManager()
+        data_manager.data = data
+        data_manager.find_boundary()
+
+        done = False
+        while not done:
+            RequestHandler.read_header(data_manager)
+            RequestHandler.read_data(data_manager)
+            done = RequestHandler.check_EOF(data_manager)
+
+            file_name = data_manager.file_name
+            file_body = data_manager.body
 
             if file_name == "":
                 continue
@@ -158,10 +214,72 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Create file
-            f = open(file_name, "w")
+            f = open(file_name, "wb")
             f.write(file_body)
             f.close()
         self._send_json_success()
+
+    @classmethod
+    def read_file_name(cls, data):
+        header = data.decode("utf-8")
+        m = re.search('filename="(.*)"', header)
+        return m.group(1)
+
+    #looks for 2 newlines in a row. This marks the end of a header
+    @classmethod
+    def skip_header(cls, data_manager):
+        curr = False
+        last = False
+        while (True):
+            data_manager.move_next()
+            curr = data_manager.is_newline()
+            if (curr and last):
+                data_manager.move_next()
+                return
+            last = curr
+
+    @classmethod
+    def read_header(cls, data_manager):
+        start = data_manager.curr_index()
+        cls.skip_header(data_manager)
+        end = data_manager.curr_index()
+        header = data_manager.split(start, end)
+        data_manager.file_name = cls.read_file_name(header)
+
+    #returns whether or not the current character is the beggining of the first line of the header
+    @classmethod
+    def is_header(cls, data_manager):
+        curr_index = data_manager.curr_index()
+        boundary = data_manager.boundary
+        #increment by 1 so we don't compare the newline itself
+        header_l = data_manager.split(curr_index + data_manager.newline_length, curr_index + data_manager.newline_length + len(boundary))
+        return boundary == header_l
+
+    #looks for header
+    @classmethod
+    def skip_data(cls, data_manager):
+        while (True):
+            data_manager.find_newline()
+            if (cls.is_header(data_manager)):
+                return
+            data_manager.move_next()
+
+    @classmethod
+    def read_data(cls, data_manager):
+        start = data_manager.curr_index()
+        cls.skip_data(data_manager)
+        end = data_manager.curr_index()
+        data_manager.body = data_manager.split(start, end)
+
+    @classmethod
+    def check_EOF(cls, data_manager):
+        #read the newline before the boundary
+        data_manager.move_next()
+        #read the boundary
+        for _ in range(len(data_manager.boundary)):
+            data_manager.move_next()
+        #check for EOF
+        return not data_manager.is_newline()
 
     # Called on DELETE request
     def do_DELETE(self):
@@ -169,6 +287,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         try:
             parsed_url = urlparse(self.path)
             file = parsed_url.path[1:]
+            file = urllib.parse.unquote(file)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
             self._send_json_error(200, "Parsing problem")
