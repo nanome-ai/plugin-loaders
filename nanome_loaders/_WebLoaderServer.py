@@ -314,7 +314,7 @@ class _WebLoaderServer():
 
     @staticmethod
     def file_filter(name):
-        return name.endswith(".pdb") or name.endswith(".sdf") or name.endswith(".cif") or name.endswith(".ppt") or name.endswith(".pptx")
+        return name.endswith(".pdb") or name.endswith(".sdf") or name.endswith(".cif") or name.endswith(".ppt") or name.endswith(".pptx") or name.endswith(".pdb")
 
     def start(self):
         self.__process.start()

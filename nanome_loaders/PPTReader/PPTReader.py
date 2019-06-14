@@ -67,6 +67,7 @@ class PPTReader(object):
 
         self._image = root.find_node("image", True).create_child_node().add_new_image()
         self._image.file_path = os.path.join(os.path.dirname(__file__), 'placeholder.png')
+        self._image.scaling_option = nanome.util.enums.ScalingOptions.fit
 
         root.find_node("close", True).get_content().register_pressed_callback(self.close)
 
@@ -115,8 +116,8 @@ class PPTReader(object):
 
     def _start_conversion(self):
         self._base_name = tempfile.NamedTemporaryFile().name
-        args = ['convert', '-density', '400', self._ppt_file.name, '-resize', '800x600', self._base_name + '-pptreader-%d.jpg']
-        
+        args = ['convert', '-density', '288', self._ppt_file.name, self._base_name + '-pptreader-%d.jpg']
+
         try:
             self._process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
@@ -152,6 +153,7 @@ class PPTReader(object):
         while is_file:
             is_file = os.path.isfile(self._base_name + '-pptreader-' + str(i) + '.jpg')
             i += 1
+        i -= 1
 
         os.remove(self._ppt_file.name)
 

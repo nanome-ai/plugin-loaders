@@ -54,7 +54,7 @@ class WebLoader(nanome.PluginInstance):
             complex = Complex.io.from_mmcif(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
             return
-        elif extension == "ppt" or extension == "pptx":
+        elif extension == "ppt" or extension == "pptx" or extension == "pdf":
             with open(file_path) as ppt:
                 self.display_ppt(ppt)
         else:
