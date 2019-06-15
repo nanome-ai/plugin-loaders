@@ -84,7 +84,7 @@ class WebLoader(nanome.PluginInstance):
 
     def display_ppt(self, file):
         if (self._ppt_reader == None):
-            self._ppt_reader = PPTReader(self, self._web_loader_menu.open_menu)
+            self._ppt_reader = PPTReader(self, lambda _=None : self._web_loader_menu.open_menu())
         self._ppt_reader.set_ppt(file)
         self._ppt_reader.open_menu()
 
