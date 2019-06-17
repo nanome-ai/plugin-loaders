@@ -118,7 +118,7 @@ class PPTReader(object):
     def _start_conversion(self):
         self._base_name = tempfile.NamedTemporaryFile().name
         nanome.util.Logs.message(self._base_name)
-        args = ['magick', '-density', '288', self._ppt_file.name, self._base_name + '-pptreader-%d.jpg']
+        args = ['convert', '-density', '288', self._ppt_file.name, self._base_name + '-pptreader-%d.jpg']
 
         try:
             self._process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

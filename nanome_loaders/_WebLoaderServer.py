@@ -105,6 +105,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-type', type)
         self.end_headers()
 
+    def _write(self, message):
+        try:
+            self.wfile.write(message)
+        except:
+            Logs.warning("Connection reset while responding", self.client_address)
+
     # Special GET case: get file list
     def _send_list(self):
         self._set_headers(200, 'application/json')
@@ -114,7 +120,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         file_list = [filename for filename in os.listdir(".") if _WebLoaderServer.file_filter(filename)]
         for file in file_list:
             response['file_list'].append(file)
-        self.wfile.write(json.dumps(response).encode("utf-8"))
+        self._write(json.dumps(response).encode("utf-8"))
 
     # Standard GET case: get a file
     def _try_get_resource(self, path):
@@ -144,7 +150,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         else:
             to_send = page.encode("utf-8")
         self._set_headers(200, type_specs[0])
-        self.wfile.write(to_send)
+        self._write(to_send)
         f.close()
 
     # Called on GET request
@@ -168,14 +174,14 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self._set_headers(code, 'application/json')
         response = dict()
         response['success'] = True
-        self.wfile.write(json.dumps(response).encode("utf-8"))
+        self._write(json.dumps(response).encode("utf-8"))
 
     def _send_json_error(self, code, message):
         response = dict()
         response['success'] = False
         response['error'] = message
         self._set_headers(code, 'application/json')
-        self.wfile.write(json.dumps(response).encode("utf-8"))
+        self._write(json.dumps(response).encode("utf-8"))
 
     # Called on POST request
     def do_POST(self):
