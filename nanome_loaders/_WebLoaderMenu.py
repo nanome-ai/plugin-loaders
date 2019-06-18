@@ -26,6 +26,7 @@ class _WebLoaderMenu():
         ln_list = content.create_child_node()
         ln_list.set_size_ratio(0.75)
         ln_list.set_padding(top=0.016, down=0.016)
+        ln_list.forward_dist = 0.01
         ln_button = content.create_child_node()
         ln_button.set_size_ratio(0.15)
 
