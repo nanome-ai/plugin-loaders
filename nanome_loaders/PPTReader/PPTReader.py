@@ -1,9 +1,11 @@
 import nanome
+from nanome.util import Logs
 
 import os
 import tempfile
 import traceback
 import subprocess
+from sys import platform
 
 class PPTReader(object):
 
@@ -12,13 +14,22 @@ class PPTReader(object):
         self.close = close
         self.update_content = plugin.update_content
         self.update_menu = plugin.update_menu
-        self.__reset_state()
+        self._images_nb = 0
+        self._base_name = ""
         self._build_menu()
+        self.__reset_state()
 
     def set_ppt(self, ppt):
         self.__reset_state()
         self._ppt_file = ppt
         self._request_pending = True
+        name = self._ppt_file.name
+        self._base_name = tempfile.NamedTemporaryFile().name
+        if platform == "win32" and (name.endswith(".pptx") or name.endswith(".ppt") or name.endswith(".odp")):
+            self._tmp_dir = tempfile.TemporaryDirectory()
+            self._step = 1
+        else:
+            self._step = 2
 
     def open_menu(self):
         self.__plugin.select_menu(self.__menu)
@@ -27,6 +38,10 @@ class PPTReader(object):
         return self.__plugin.menu == self.__menu
 
     def __del__(self):
+        try:
+            os.remove(self._tmp_dir)
+        except:
+            pass
         if self._base_name != "":
             for i in range(self._images_nb):
                 try:
@@ -35,11 +50,14 @@ class PPTReader(object):
                     pass
 
     def __reset_state(self):
+        self.__del__()
+        self._tmp_dir = None
         self._request_pending = False
         self._running = False
         self._current_image = 0
         self._images_nb = 0
         self._base_name = ""
+        self._image.file_path = os.path.join(os.path.dirname(__file__), 'placeholder.png')
 
     def _build_menu(self):
         def left(btn):
@@ -116,14 +134,25 @@ class PPTReader(object):
             self._conversion_finished()
 
     def _start_conversion(self):
-        self._base_name = tempfile.NamedTemporaryFile().name
-        nanome.util.Logs.message(self._base_name)
-        args = ['convert', '-density', '288', self._ppt_file.name, self._base_name + '-pptreader-%d.jpg']
+        if platform == "linux" or platform == "linux2":
+            args = ['convert', '-density', '288', self._ppt_file.name, self._base_name + '-pptreader-%d.jpg']
+        elif platform == "darwin":
+            Logs.error("Plugin not compatible with Mac OS yet")
+        elif platform == "win32":
+            if self._step == 1:
+                args = ['simpress.exe', '--headless', '--invisible', '--convert-to', 'pdf', '--outdir', self._tmp_dir.name, self._ppt_file.name]
+            else:
+                if self._tmp_dir != None:
+                    input = os.path.join(self._tmp_dir.name, '*.pdf')
+                else:
+                    input = self._ppt_file.name
+                args = ['magick', '-density', '288', input, self._base_name + '-pptreader-%d.jpg']
 
+        Logs.debug("Starting conversion with args:", args)
         try:
             self._process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
-            nanome.util.Logs.error("Couldn't execute 'convert':", traceback.format_exc())
+            nanome.util.Logs.error("Couldn't convert:", traceback.format_exc())
             self._request_pending = False
             self._running = False
             self.close()
@@ -133,6 +162,11 @@ class PPTReader(object):
         return self._process.poll() != None
                         
     def _conversion_finished(self):
+        if platform == "win32" and self._step == 1:
+            self._running = False
+            self._step = 2
+            return
+
         self._request_pending = False
         self._running = False
         try:
