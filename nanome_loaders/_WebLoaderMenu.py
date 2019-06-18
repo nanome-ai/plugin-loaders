@@ -13,8 +13,10 @@ class _WebLoaderMenu():
 
         # Request and set menu window
         menu = self.__plugin.menu
-        menu.title = "Web Files"
         self.__menu = menu
+        menu.title = "Web Files"
+        menu.width = 1
+        menu.height = 1
 
         # Create all needed layout nodes
         menu.root.clear_children()
@@ -24,6 +26,7 @@ class _WebLoaderMenu():
         ln_list = content.create_child_node()
         ln_list.set_size_ratio(0.75)
         ln_list.set_padding(top=0.016, down=0.016)
+        ln_list.forward_dist = 0.01
         ln_button = content.create_child_node()
         ln_button.set_size_ratio(0.15)
 
@@ -48,11 +51,13 @@ class _WebLoaderMenu():
         child.add_new_button()
 
         # Update menu
-        self.__plugin.update_menu(self.__menu)
+        self.open_menu()
 
     def open_menu(self):
-        self.__menu.enabled = True
-        self.__plugin.update_menu(self.__menu)
+        self.__plugin.select_menu(self.__menu)
+
+    def is_open(self):
+        return self.__plugin.menu == self.__menu
 
     def update_list(self, file_list):
         # Called when a button is clicked in the list
