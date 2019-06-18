@@ -13,8 +13,10 @@ class _WebLoaderMenu():
 
         # Request and set menu window
         menu = self.__plugin.menu
-        menu.title = "Web Files"
         self.__menu = menu
+        menu.title = "Web Files"
+        menu.width = 1
+        menu.height = 1
 
         # Create all needed layout nodes
         menu.root.clear_children()
