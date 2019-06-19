@@ -33,7 +33,13 @@ setup(
 	],
 	package_data={
         "nanome_loaders": [
-            "_WebLoader/*",
+            "_WebLoader/*.html",
+            "_WebLoader/*.ico",
+            "_WebLoader/*.js",
+            "_WebLoader/logo.png",
+            "_WebLoader/*.css",
+            "PPTReader/*.png"
+            "PPTReader/*.json"
         ]
 	},
 )
