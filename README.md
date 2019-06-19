@@ -19,9 +19,12 @@ Web Loader currently supports:
 $ pip install nanome-loaders
 ```
 
-In order to load non-molecular files with Web Loader, the following applications should be installed on the computer running the plugin:
-- For Linux, the package "imagemagick" is required.
-- For Windows, ImageMagick should be installed, as well as LibreOffice and Ghostscript. Both ImageMagick and LibreOffice should be in the PATH environment variable (the folder containing simpress.exe should be in PATH for LibreOffice)
+In order to load non-molecular files with Web Loader, the following applications/packages should be installed on the computer running the plugin:
+- ImageMagick
+- LibreOffice
+- Ghostscript
+
+For Windows especially, make sure that these applications are in the PATH environment variable (the folder containing simpress.exe should be in PATH for LibreOffice)
 
 ### Usage
 
