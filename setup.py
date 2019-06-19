@@ -38,7 +38,7 @@ setup(
             "_WebLoader/*.js",
             "_WebLoader/logo.png",
             "_WebLoader/*.css",
-            "PPTReader/*.png"
+            "PPTReader/*.png",
             "PPTReader/*.json"
         ]
 	},
