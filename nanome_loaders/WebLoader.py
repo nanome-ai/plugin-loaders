@@ -4,6 +4,7 @@ from nanome.api.structure import Complex
 
 from ._WebLoaderServer import _WebLoaderServer
 from . import _WebLoaderMenu
+from .Menu.MenuManager import MenuManager
 from .PPTReader import PPTReader
 import os
 import socket
