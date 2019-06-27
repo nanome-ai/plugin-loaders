@@ -15,27 +15,46 @@ SERVER_PORT = 80
 class WebLoader(nanome.PluginInstance):
     def start(self):
         self.running = False
-        self.ppt_readers = []
+        self.ppt_readers = {}
 
     def update(self):
         if not self.running:
             return
-        for ppt_reader in self.ppt_readers:
-            ppt_reader.update()
 
         if (self.menu_manager.selected_page == self.menu_manager.home_page):
             if timer() - self.__timer >= 3.0:
+                for ppt_reader in self.ppt_readers.values():
+                    ppt_reader.update()
+
                 self.__refresh()
                 self.__timer = timer()
 
+        if timer() - self.big_timer >= 600:
+            filtered_ppt_readers = {}
+            for file in self.menu_manager.GetOpenFiles():
+                for key, value in self.ppt_readers.items():
+                    if not value.done or key.startswith(file):
+                        filtered_ppt_readers[key] = value
+            self.ppt_readers = filtered_ppt_readers
+            self.big_timer = timer()
+
     def __refresh(self):
-        file_list = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if _WebLoaderServer.file_filter(filename)]
-        self.menu_manager.UpdateFiles(file_list)
+        files = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if _WebLoaderServer.file_filter(filename)]
+        self.menu_manager.UpdateFiles(files)
+
+    def diff_files(self, old_files, new_files):
+        old_files = set(old_files)
+        new_files = set(new_files)
+        remove_files = old_files - new_files
+        add_files = new_files - old_files
+        return add_files, remove_files
 
     def on_run(self):
         self.running = True
-        self.menu_manager = MenuManager(self, self.load_molecule)
+        self.menu_manager = MenuManager(self, WebLoader.get_server_url(), self.load_molecule)
+        self.__refresh()
         self.__timer = timer()
+        self.big_timer = timer()
 
     def load_molecule(self, name):
         extension = name.split(".")[-1]
@@ -79,18 +98,21 @@ class WebLoader(nanome.PluginInstance):
         return ip
 
     def display_ppt(self, file_name):
-        ppt_reader = PPTConverter()
+        key = os.path.basename(file_name) + str(os.path.getmtime(file_name))
+        if key in self.ppt_readers:
+            ppt_reader = self.ppt_readers[key]
+        else:
+            ppt_reader = PPTConverter(file_name)
+            self.ppt_readers[key] = ppt_reader
         def done_delegate(images):
             if len(images) == 1:
                 self.menu_manager.OpenPage(PageTypes.Image, images[0], file_name)
             elif len(images) > 1:
                 self.menu_manager.OpenPage(PageTypes.PPT, images, file_name)
-            self.ppt_readers.remove(ppt_reader)
         def error_delegate():
             #cleanup ppt_reader
-            self.ppt_readers.remove(ppt_reader)
-        self.ppt_readers.append(ppt_reader)
-        ppt_reader.Convert(file_name, done_delegate, error_delegate)
+            pass
+        ppt_reader.Convert(done_delegate, error_delegate)
 
 def main():
     # Plugin server (for Web)

@@ -20,19 +20,19 @@ class PageTypes(nanome.util.IntEnum):
 
 #Singleton class.
 class MenuManager(object):
-    def __init__(self, plugin, load_file_delegate):
+    def __init__(self, plugin, address, load_file_delegate):
         MenuManager.instance = self
         self.plugin = plugin
         self.ReadJsons()
         MenuManager.Page.tab_bar = self.plugin.menu.root.find_node("TabBar")
-        MenuManager.Page.page_parent = self.plugin.menu.root
+        MenuManager.Page.page_parent = self.plugin.menu.root.find_node("Pages")
         MenuManager.Page.menu_manager = self
 
         home = self.plugin.menu.root.find_node("FilesPage")
         home_tab = self.plugin.menu.root.find_node("HomeTab")
-        self.home_page = MenuManager.HomePage(home_tab, home, load_file_delegate)
+        self.home_page = MenuManager.HomePage(home_tab, home, address, load_file_delegate)
         self.selected_page = self.home_page
-        self.Refresh()
+        self.uploaded = False
 
     def ReadJsons(self):
         self.plugin.menu = nanome.ui.Menu.io.from_json(MENU_PATH)
@@ -58,12 +58,16 @@ class MenuManager(object):
         self.Refresh()
 
     @classmethod
-    def RefreshMenu(cls):
-        MenuManager.instance.Refresh()
+    def RefreshMenu(cls, content = None):
+        MenuManager.instance.Refresh(content)
 
-    def Refresh(self):
-        self.plugin.menu.enable = True
-        self.plugin.update_menu(self.plugin.menu)
+    def Refresh(self, content = None):
+        if content and self.uploaded:
+            self.plugin.update_content(content)
+        else:
+            self.uploaded = True
+            self.plugin.menu.enable = True
+            self.plugin.update_menu(self.plugin.menu)
 
     def AddFile(self, name):
         self.home_page.AddFile(name)
@@ -90,6 +94,12 @@ class MenuManager(object):
         if changed:
             self.Refresh()
 
+    def GetFiles(self):
+        return list(map(lambda item: item.name, self.home_page.file_list.items))
+
+    def GetOpenFiles(self):
+        return list(map(lambda item: item.name, MenuManager.Page.page_parent.get_children()))
+
     class Page(object):
         tab_bar = None
         page_parent = None
@@ -102,8 +112,9 @@ class MenuManager(object):
             self.tab_label = self.tab_base.find_node("TabPrefabLabel").get_content()
             self.tab_delete_button = self.tab_base.find_node("TabPrefabDelete").get_content()
 
-            tab_name = os.path.basename(name)
-            tab_name = os.path.splitext(tab_name)[0]
+            base_name = os.path.basename(name)
+            base_name = os.path.splitext(base_name)[0]
+            tab_name = base_name[:6]
             self.tab_label.text_value = tab_name
 
             fill = self.tab_bar.find_node("Fill")
@@ -113,6 +124,7 @@ class MenuManager(object):
 
             #setup page
             self.base = page_prefab.clone()
+            self.base.name = base_name
             page_prefab = None
             self.page_parent.add_child(self.base)
 
@@ -138,7 +150,7 @@ class MenuManager(object):
             self.tab_base.selected = True
 
     class HomePage(Page):
-        def __init__(self, tab, page, load_file_delegate):
+        def __init__(self, tab, page, address, load_file_delegate):
             self.tab_base = tab
             self.base = page
             self.type = PageTypes.Home
@@ -148,7 +160,8 @@ class MenuManager(object):
                 self.menu_manager.SwitchTab(self)
             self.tab_button.register_pressed_callback(tab_pressed)
             self.load_button = self.base.find_node("LoadButton").get_content()
-            self.instruction_label = self.base.find_node("InstructionLabel").get_content()
+            instruction_label = self.base.find_node("InstructionLabel").get_content()
+            instruction_label.text_value = "Add files by visiting " + address + " in your browser"
             self.file_list = self.base.find_node("FileList").get_content()
 
             self.selected_file = None
@@ -170,10 +183,11 @@ class MenuManager(object):
             def FilePressedCallback(button):
                 if not self.selected_file is None:
                     self.selected_file.selected = False
+                    MenuManager.RefreshMenu(self.selected_file)
                 self.selected_file = button
                 self.selected_file.selected = True
                 self.load_button.unuseable = False
-                MenuManager.RefreshMenu()
+                MenuManager.RefreshMenu(self.selected_file)
             button.register_pressed_callback(FilePressedCallback)
 
             self.file_list.items.append(new_file)
@@ -215,11 +229,13 @@ class MenuManager(object):
             def move_next(button):
                 next_slide = (self.current_slide+1) % len(self.images)
                 self.change_slide(next_slide)
-                MenuManager.RefreshMenu()
+                MenuManager.RefreshMenu(self.ppt_content)
+                MenuManager.RefreshMenu(self.page_text)
             def move_prev(button):
                 next_slide = (self.current_slide-1) % len(self.images)
                 self.change_slide(next_slide)
-                MenuManager.RefreshMenu()
+                MenuManager.RefreshMenu(self.ppt_content)
+                MenuManager.RefreshMenu(self.page_text)
             self.prev_button.register_pressed_callback(move_prev)
             self.next_button.register_pressed_callback(move_next)
             self.change_slide(0)
@@ -228,4 +244,4 @@ class MenuManager(object):
             num_slides = len(self.images)
             self.current_slide = index
             self.ppt_content.file_path = self.images[index]
-            self.page_text.text_value = str(self.current_slide) +"/" + str(num_slides)
+            self.page_text.text_value = str(self.current_slide+1) +"/" + str(num_slides)
