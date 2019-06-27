@@ -3,9 +3,8 @@ from nanome.util import Logs
 from nanome.api.structure import Complex
 
 from ._WebLoaderServer import _WebLoaderServer
-from . import _WebLoaderMenu
-from .Menu.MenuManager import MenuManager
-from .PPTReader import PPTReader
+from .Menu.MenuManager import MenuManager, PageTypes
+from .PPTConverter import PPTConverter
 import os
 import socket
 from timeit import default_timer as timer
@@ -15,31 +14,28 @@ SERVER_PORT = 80
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
     def start(self):
-        self._web_loader_menu = _WebLoaderMenu._WebLoaderMenu(self)
-        self._web_loader_menu.build_menu(WebLoader.get_server_url())
-        self.__refresh()
-        self.__timer = timer()
-        self._ppt_reader = None
+        self.running = False
+        self.ppt_readers = []
 
     def update(self):
-        if self._ppt_reader:
-            self._ppt_reader.update()
-        if (self._web_loader_menu.is_open()):
+        if not self.running:
+            return
+        for ppt_reader in self.ppt_readers:
+            ppt_reader.update()
+
+        if (self.menu_manager.selected_page == self.menu_manager.home_page):
             if timer() - self.__timer >= 3.0:
                 self.__refresh()
                 self.__timer = timer()
 
-    def select_menu(self, menu):
-        self.menu = menu
-        self.menu.enabled = True
-        self.update_menu(self.menu)
-
     def __refresh(self):
         file_list = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if _WebLoaderServer.file_filter(filename)]
-        self._web_loader_menu.update_list(file_list)
+        self.menu_manager.UpdateFiles(file_list)
 
     def on_run(self):
-        self._web_loader_menu.open_menu()
+        self.running = True
+        self.menu_manager = MenuManager(self, self.load_molecule)
+        self.__timer = timer()
 
     def load_molecule(self, name):
         extension = name.split(".")[-1]
@@ -56,8 +52,7 @@ class WebLoader(nanome.PluginInstance):
             self.add_bonds([complex], self.bonds_ready)
             return
         elif extension == "ppt" or extension == "pptx" or extension == "pdf":
-            with open(file_path) as ppt:
-                self.display_ppt(ppt)
+            self.display_ppt(file_path)
         else:
             Logs.warning("Unknown file extension for file", name)
             return
@@ -83,11 +78,19 @@ class WebLoader(nanome.PluginInstance):
             ip += ":" + str(SERVER_PORT)
         return ip
 
-    def display_ppt(self, file):
-        if (self._ppt_reader == None):
-            self._ppt_reader = PPTReader(self, lambda _=None : self._web_loader_menu.open_menu())
-        self._ppt_reader.set_ppt(file)
-        self._ppt_reader.open_menu()
+    def display_ppt(self, file_name):
+        ppt_reader = PPTConverter()
+        def done_delegate(images):
+            if len(images) == 1:
+                self.menu_manager.OpenPage(PageTypes.Image, images[0], file_name)
+            elif len(images) > 1:
+                self.menu_manager.OpenPage(PageTypes.PPT, images, file_name)
+            self.ppt_readers.remove(ppt_reader)
+        def error_delegate():
+            #cleanup ppt_reader
+            self.ppt_readers.remove(ppt_reader)
+        self.ppt_readers.append(ppt_reader)
+        ppt_reader.Convert(file_name, done_delegate, error_delegate)
 
 def main():
     # Plugin server (for Web)

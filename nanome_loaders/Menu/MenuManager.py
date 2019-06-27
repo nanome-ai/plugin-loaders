@@ -38,7 +38,7 @@ class MenuManager(object):
         self.plugin.menu = nanome.ui.Menu.io.from_json(MENU_PATH)
         Prefabs.ppt_prefab = nanome.ui.LayoutNode.io.from_json(PPT_TAB_PATH).get_children()[0]
         Prefabs.image_prefab = nanome.ui.LayoutNode.io.from_json(IMAGE_TAB_PATH).get_children()[0]
-        Prefabs.list_item_prefab = nanome.ui.LayoutNode.io.from_json(LIST_ITEM_PATH).get_children()[0]
+        Prefabs.list_item_prefab = nanome.ui.LayoutNode.io.from_json(LIST_ITEM_PATH)
         Prefabs.tab_prefab = self.plugin.menu.root.find_node("TabPrefab")
         Prefabs.tab_prefab.parent.remove_child(Prefabs.tab_prefab)
 
@@ -50,6 +50,13 @@ class MenuManager(object):
         self.selected_page.select()
         MenuManager.RefreshMenu()
 
+    def OpenPage(self, type, data, name):
+        if type == PageTypes.Image:
+            MenuManager.ImagePage(data, name)
+        if type == PageTypes.PPT:
+            MenuManager.PPTPage(data, name)
+        self.Refresh()
+
     @classmethod
     def RefreshMenu(cls):
         MenuManager.instance.Refresh()
@@ -60,15 +67,34 @@ class MenuManager(object):
 
     def AddFile(self, name):
         self.home_page.AddFile(name)
+        self.Refresh()
 
     def RemoveFile(self, name):
         self.home_page.RemoveFile(name)
+        self.Refresh()
+
+    def UpdateFiles(self, names):
+        file_names = set(map(lambda item: item.name, self.home_page.file_list.items))
+        add_set = set(names)
+        remove_files = file_names - add_set
+        changed = False
+
+        for file in remove_files:
+            self.home_page.RemoveFile(file)
+            changed = True
+
+        add_files = add_set - file_names
+        for file in add_files:
+            self.home_page.AddFile(file)
+            changed = True
+        if changed:
+            self.Refresh()
 
     class Page(object):
         tab_bar = None
         page_parent = None
         menu_manager = None
-        def __init__(self, tab_prefab, page_prefab):
+        def __init__(self, name, tab_prefab, page_prefab):
             #setup tab
             self.tab_base = tab_prefab.clone()
             tab_prefab = None
@@ -76,7 +102,11 @@ class MenuManager(object):
             self.tab_label = self.tab_base.find_node("TabPrefabLabel").get_content()
             self.tab_delete_button = self.tab_base.find_node("TabPrefabDelete").get_content()
 
-            fill = self.tab_base.find_node("Fill")
+            tab_name = os.path.basename(name)
+            tab_name = os.path.splitext(tab_name)[0]
+            self.tab_label.text_value = tab_name
+
+            fill = self.tab_bar.find_node("Fill")
             self.tab_bar.add_child(self.tab_base)
             self.tab_bar.remove_child(fill)
             self.tab_bar.add_child(fill)
@@ -84,7 +114,6 @@ class MenuManager(object):
             #setup page
             self.base = page_prefab.clone()
             page_prefab = None
-
             self.page_parent.add_child(self.base)
 
             #setup buttons
@@ -97,6 +126,8 @@ class MenuManager(object):
             def tab_pressed(button):
                 self.menu_manager.SwitchTab(self)
             self.tab_button.register_pressed_callback(tab_pressed)
+
+            self.menu_manager.SwitchTab(self)
 
         def select(self):
             self.base.enabled = True
@@ -111,6 +142,7 @@ class MenuManager(object):
             self.tab_base = tab
             self.base = page
             self.type = PageTypes.Home
+            self.tab_button = self.tab_base.get_content()
 
             def tab_pressed(button):
                 self.menu_manager.SwitchTab(self)
@@ -122,7 +154,7 @@ class MenuManager(object):
             self.selected_file = None
 
             def load_file(button):
-                load_file_delegate(button.file_name)
+                load_file_delegate(self.selected_file.file_name)
 
             self.load_button.unuseable = True
             self.load_button.register_pressed_callback(load_file)
@@ -136,14 +168,15 @@ class MenuManager(object):
             button.file_name = name
 
             def FilePressedCallback(button):
-                self.selected_file.selected = False
+                if not self.selected_file is None:
+                    self.selected_file.selected = False
                 self.selected_file = button
                 self.selected_file.selected = True
                 self.load_button.unuseable = False
+                MenuManager.RefreshMenu()
             button.register_pressed_callback(FilePressedCallback)
 
             self.file_list.items.append(new_file)
-            MenuManager.RefreshMenu()
 
         def RemoveFile(self, name):
             if self.selected_file.file_name == name:
@@ -159,18 +192,17 @@ class MenuManager(object):
                 nanome.util.Logs.debug("Cannot delete file " + name + ". File not found.")
             else:
                 files.remove(deleted_file)
-                MenuManager.RefreshMenu()
 
     class ImagePage(Page):
-        def __init__(self, image):
-            MenuManager.Page.__init__(self, Prefabs.tab_prefab, Prefabs.image_prefab)
+        def __init__(self, image, name):
+            MenuManager.Page.__init__(self, name, Prefabs.tab_prefab, Prefabs.image_prefab)
             self.type = PageTypes.Image
             self.image = image
             self.image_content = self.base.find_node("ImageContent").add_new_image(image)
 
     class PPTPage(Page):
-        def __init__(self, images):
-            MenuManager.Page.__init__(self, Prefabs.tab_prefab, Prefabs.ppt_prefab)
+        def __init__(self, images, name):
+            MenuManager.Page.__init__(self, name, Prefabs.tab_prefab, Prefabs.ppt_prefab)
             self.type = PageTypes.PPT
             self.images = images
             self.prev_button = self.base.find_node("PrevButton").get_content()
@@ -178,15 +210,16 @@ class MenuManager(object):
             self.page_text = self.base.find_node("PageText").get_content()
             self.ppt_content = self.base.find_node("PPTContent").add_new_image()
             self.ppt_content.scaling_option = nanome.util.enums.ScalingOptions.fit
+
             self.current_slide = 0
             def move_next(button):
-                if self.current_slide < len(self.images):
-                    self.change_slide(self.current_slide+1)
-                    MenuManager.RefreshMenu()
+                next_slide = (self.current_slide+1) % len(self.images)
+                self.change_slide(next_slide)
+                MenuManager.RefreshMenu()
             def move_prev(button):
-                if self.current_slide > 0:
-                    self.change_slide(self.current_slide-1)
-                    MenuManager.RefreshMenu()
+                next_slide = (self.current_slide-1) % len(self.images)
+                self.change_slide(next_slide)
+                MenuManager.RefreshMenu()
             self.prev_button.register_pressed_callback(move_prev)
             self.next_button.register_pressed_callback(move_next)
             self.change_slide(0)
@@ -195,6 +228,4 @@ class MenuManager(object):
             num_slides = len(self.images)
             self.current_slide = index
             self.ppt_content.file_path = self.images[index]
-            self.prev_button.unuseable = self.current_slide <= 0
-            self.next_button.unuseable = self.current_slide >= num_slides
-            self.page_text = str(self.current_slide) +"/" + str(num_slides)
+            self.page_text.text_value = str(self.current_slide) +"/" + str(num_slides)
