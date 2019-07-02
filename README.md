@@ -1,6 +1,6 @@
 # Nanome - Loaders
 
-### A linux-only molecule loader plugin for Nanome through a URL or a Drag-and-Drop Web Interface.
+### A Web-Loader plugin for Nanome to load files through a URL or a Drag-and-Drop Web Interface.
 
 This works for both Nanome & Nanome Curie (Quest edition).
 
