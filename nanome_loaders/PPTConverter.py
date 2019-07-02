@@ -42,7 +42,7 @@ class PPTConverter(object):
             self._start_conversion()
 
     def __del__(self):
-        Logs.debug("Getting clean")
+        Logs.debug("Cleaning up temp resources.")
         try:
             os.remove(self._tmp_dir)
         except:
@@ -62,7 +62,7 @@ class PPTConverter(object):
         if not self.running:
             return
         if self._check_conversion():
-            Logs.debug("Done")
+            Logs.debug("Conversion done")
             self._conversion_finished()
 
     def _start_conversion(self):
