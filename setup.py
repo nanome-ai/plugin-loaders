@@ -39,6 +39,7 @@ setup(
             "_WebLoader/logo.png",
             "_WebLoader/*.css",
             "Menu/*.json",
+            "Menu/*.py",
         ]
 	},
 )
