@@ -5,11 +5,12 @@ from nanome.api.structure import Complex
 from ._WebLoaderServer import _WebLoaderServer
 from .Menu.MenuManager import MenuManager, PageTypes
 from .PPTConverter import PPTConverter
+import sys
 import os
 import socket
 from timeit import default_timer as timer
 
-SERVER_PORT = 80
+DEFAULT_SERVER_PORT = 80
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
@@ -116,7 +117,14 @@ class WebLoader(nanome.PluginInstance):
 
 def main():
     # Plugin server (for Web)
-    server = _WebLoaderServer(SERVER_PORT)
+    web_port = DEFAULT_SERVER_PORT
+    try:
+        for i in range(len(sys.argv)):
+            if sys.argv[i] == "-w":
+                web_port = int(sys.argv[i + 1])
+    except:
+        pass
+    server = _WebLoaderServer(web_port)
     server.start()
 
     # Plugin
