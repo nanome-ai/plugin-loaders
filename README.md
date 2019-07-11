@@ -40,6 +40,12 @@ $ nanome-web-loader -a plugin_server_address
 
 On Linux, you might have to start the nanome-web-loader as sudo to listen on port 80.
 
+The port to open (the open used for the Web UI), can be changed by starting the plugin with the option -w:
+
+```sh
+$ nanome-web-loader -w 8080
+```
+
 In Nanome:
 
 - Activate Plugin
