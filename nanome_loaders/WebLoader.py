@@ -94,8 +94,8 @@ class WebLoader(nanome.PluginInstance):
         finally:
             s.close()
 
-        if SERVER_PORT != 80:
-            ip += ":" + str(SERVER_PORT)
+        if DEFAULT_SERVER_PORT != 80:
+            ip += ":" + str(DEFAULT_SERVER_PORT)
         return ip
 
     def display_ppt(self, file_name):
