@@ -10,8 +10,10 @@ from nanome.util import Logs
 ##### CONFIG #####
 ##################
 
-url = "https://files.rcsb.org/download/{{NAME}}.cif" # {{NAME}} indicates where to write molecule code
-type = "MMCIF" # PDB / SDF / MMCIF
+version = "01"
+default_ext = "pdb"
+# {{NAME}} indicates where to write molecule code
+url = "http://resdev.gene.com/gyst/str/STR{{NAME}}_{{VERSION}}.{{TYPE}}".replace("{{VERSION}}", str(version))
 
 ##################
 ##################
@@ -35,6 +37,9 @@ class URLLoader(nanome.PluginInstance):
         # Create the text field
         self.__field = menu.root.find_node('Input').get_content()
         self._ln_overlay = menu.root.find_node('Input Overlay')
+        self._ln_extension = menu.root.find_node('Extension')
+
+        self._ln_extension.get_content().input_text = default_ext
         # Create the load button
         btn = menu.root.find_node('Load').get_content()
         btn.register_pressed_callback(btn_click)
@@ -48,24 +53,25 @@ class URLLoader(nanome.PluginInstance):
         self.update_menu(self.menu)
 
     def load_molecule(self, code):
-        url_to_load = url.replace("{{NAME}}", code)
+        ext = self._ln_extension.get_content().input_text.lower()
+        url_to_load = url.replace("{{NAME}}", code).replace("{{TYPE}}", ext)
         response = requests.get(url_to_load)
         file = tempfile.NamedTemporaryFile(delete=False)
         self._name = code
         try:
             file.write(response.text.encode("utf-8"))
             file.close()
-            if type == "PDB":
+            if ext == "pdb":
                 complex = nanome.structure.Complex.io.from_pdb(path=file.name)
                 self.add_bonds([complex], self.bonds_ready)
-            elif type == "SDF":
+            elif ext == "sdf":
                 complex = nanome.structure.Complex.io.from_sdf(path=file.name)
                 self.bonds_ready([complex])
-            elif type == "MMCIF":
+            elif ext == "cif":
                 complex = nanome.structure.Complex.io.from_mmcif(path=file.name)
                 self.add_bonds([complex], self.bonds_ready)
             else:
-                Logs.error("Unknown file type")
+                Logs.error("Unknown file extension")
         except: # Making sure temp file gets deleted in case of problem
             self._loading = False
             Logs.error("Error while loading molecule:\n", traceback.format_exc())
