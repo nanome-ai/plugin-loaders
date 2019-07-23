@@ -37,6 +37,8 @@ class URLLoader(nanome.PluginInstance):
         # Create the text field
         self.__field = menu.root.find_node('Input').get_content()
         self._ln_overlay = menu.root.find_node('Input Overlay')
+        self._label_version = menu.root.find_node('Version').get_content()
+        self._label_version.text_value = "_"+version
         self._ln_extension = menu.root.find_node('Extension')
 
         self._ln_extension.get_content().input_text = default_ext
