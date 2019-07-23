@@ -13,7 +13,7 @@ from nanome.util import Logs
 version = "01"
 default_ext = "pdb"
 # {{NAME}} indicates where to write molecule code
-url = "http://resdev.gene.com/gyst/str/STR{{NAME}}_{{VERSION}}.{{TYPE}}".replace("{{VERSION}}", str(version))
+url = "http://resdev.gene.com/gyst/str/STR{{NAME}}_{{VERSION}}.{{EXT}}".replace("{{VERSION}}", str(version))
 
 ##################
 ##################
@@ -56,7 +56,7 @@ class URLLoader(nanome.PluginInstance):
 
     def load_molecule(self, code):
         ext = self._ln_extension.get_content().input_text.lower()
-        url_to_load = url.replace("{{NAME}}", code).replace("{{TYPE}}", ext)
+        url_to_load = url.replace("{{NAME}}", code).replace("{{EXT}}", ext)
         response = requests.get(url_to_load)
         file = tempfile.NamedTemporaryFile(delete=False)
         self._name = code
