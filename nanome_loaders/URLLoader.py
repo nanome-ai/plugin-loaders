@@ -25,30 +25,18 @@ class URLLoader(nanome.PluginInstance):
             if self._loading == True:
                 return
             self._loading = True
+            self.turn_on_overlay(self.__field.input_text)
             self.load_molecule(self.__field.input_text)
 
         # Request and set menu window
-        menu = self.menu
-        menu.title = "URL Loader"
-        menu._width = 0.8
-        menu._height = 0.7
-        menu.enabled = True
-
-        # Create all needed layout nodes
-        menu.root.clear_children()
-        content = menu.root.create_child_node()
-        ln_field = content.create_child_node()
-        ln_field.forward_dist = .03 # TMP, should be fixed soon
-        ln_field.set_padding(top=0.07, down=0.04)
-        ln_button = content.create_child_node()
-        ln_button.set_padding(top=0.1)
+        menu = nanome.ui.Menu.io.from_json('Menu/URLLoader.json')
+        self.menu = menu
 
         # Create the text field
-        self.__field = ln_field.add_new_text_input()
-        self.__field.placeholder_text = "Molecule Code"
-
+        self.__field = menu.root.find_node('Input').get_content()
+        self._ln_overlay = menu.root.find_node('Input Overlay')
         # Create the load button
-        btn = ln_button.add_new_button(text="Load")
+        btn = menu.root.find_node('Load').get_content()
         btn.register_pressed_callback(btn_click)
 
         # Update menu
@@ -88,8 +76,19 @@ class URLLoader(nanome.PluginInstance):
 
     def complex_ready(self, complex_list):
         self._loading = False
+        self.turn_off_overlay()
         complex_list[0].molecular.name = self._name
         self.add_to_workspace(complex_list)
+
+    def turn_on_overlay(self, text):
+        self._ln_overlay.enabled = True
+        self._ln_overlay.get_content().color = nanome.util.color.Color(240, 240, 240, 255)
+        self._ln_overlay.find_node('Overlay Text').get_content().text_value = text
+        self.update_menu(self.menu)
+
+    def turn_off_overlay(self):
+        self._ln_overlay.enabled = False
+        self.update_menu(self.menu)
 
 def main():
     plugin = nanome.Plugin("URL Loader", "Load molecule from database", "Loading", False)
