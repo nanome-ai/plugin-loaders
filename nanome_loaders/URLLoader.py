@@ -10,7 +10,7 @@ from nanome.util import Logs
 ##### CONFIG #####
 ##################
 
-version = "01"
+version = "1"
 default_ext = "pdb"
 # {{NAME}} indicates where to write molecule code
 url = "http://resdev.gene.com/gyst/str/STR{{NAME}}_{{VERSION}}.{{EXT}}".replace("{{VERSION}}", str(version))
