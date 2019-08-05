@@ -26,6 +26,13 @@ In order to load non-molecular files with Web Loader, the following applications
 
 For Windows especially, make sure that these applications are in the PATH environment variable (the folder containing simpress.exe should be in PATH for LibreOffice)
 
+On Ubuntu, a security policy might prevent ImageMagick from converting PDF to images.
+It can be removed by running:
+```sh
+$ sudo mv /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xmlout
+```
+See this answer on AskUbuntu for more information: https://askubuntu.com/a/1081907
+
 ### Usage
 
 To start the plugin:
