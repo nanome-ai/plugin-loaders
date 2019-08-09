@@ -47,7 +47,7 @@ class DataManager(object):
                 self.newline_length = 1
                 self.boundary = self.data[:self.byte]
                 return
-            if (n == 0x0D):
+            if n == 0x0D:
                 self.newline_length = 2
                 self.boundary = self.data[:self.byte]
                 return
@@ -56,16 +56,16 @@ class DataManager(object):
     def is_newline(self):
         result = False
         curr_byte = self.get_current()
-        if (self.newline_length == 1):
+        if self.newline_length == 1:
             result = curr_byte == 0x0A
-        elif (self.newline_length == 2):
-            result = curr_byte == 0x0D 
-            if (result):
+        elif self.newline_length == 2:
+            result = curr_byte == 0x0D
+            if result:
                 result = self.data[self.byte + 1] == 0x0A
         return result
 
     def find_newline(self):
-        while(not self.is_newline()):
+        while not self.is_newline():
             self.move_next()
 
     def curr_index(self):
@@ -75,7 +75,7 @@ class DataManager(object):
         return self.data[self.byte]
 
     def move_next(self):
-        if (self.is_newline()):
+        if self.is_newline():
             self.byte += self.newline_length
         else:
             self.byte +=1
@@ -83,7 +83,7 @@ class DataManager(object):
     def move_next_utf8(self):
         n = self.get_current()
         if n < 0x80:
-            self.byte += 1            
+            self.byte += 1
         elif n < 0xc0:
             self.byte += 1
         elif n < 0xe0:
@@ -133,11 +133,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 os.chdir(elem)
             file = path_list[-1]
             format = file.split(".")[-1]
-            type_specs = get_type(format) # Get Mime type and if binary type
-            if type_specs[1] == True: # If binary type, open file in binary mode
-                f = open(file, 'rb')
-            else:
-                f = open(file, 'r')
+            type_specs = get_type(format)  # Get Mime type and if binary type
+            # If binary type, open file in binary mode
+            f = open(file, 'rb' if type_specs[1] else 'r')
         except:
             self._set_headers(404)
             os.chdir(old_path)
@@ -145,10 +143,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         os.chdir(old_path)
         page = f.read()
-        if type_specs[1] == True: # If binary type, don't try to decode page to str
-            to_send = page
-        else:
-            to_send = page.encode("utf-8")
+        # If binary type, don't try to decode page to str
+        to_send = page if type_specs[1] else page.encode("utf-8")
+
         self._set_headers(200, type_specs[0])
         self._write(to_send)
         f.close()
@@ -236,10 +233,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     def skip_header(cls, data_manager):
         curr = False
         last = False
-        while (True):
+        while True:
             data_manager.move_next()
             curr = data_manager.is_newline()
-            if (curr and last):
+            if curr and last:
                 data_manager.move_next()
                 return
             last = curr
@@ -258,15 +255,16 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         curr_index = data_manager.curr_index()
         boundary = data_manager.boundary
         #increment by 1 so we don't compare the newline itself
-        header_l = data_manager.split(curr_index + data_manager.newline_length, curr_index + data_manager.newline_length + len(boundary))
+        start = curr_index + data_manager.newline_length
+        header_l = data_manager.split(start, start + len(boundary))
         return boundary == header_l
 
     #looks for header
     @classmethod
     def skip_data(cls, data_manager):
-        while (True):
+        while True:
             data_manager.find_newline()
-            if (cls.is_header(data_manager)):
+            if cls.is_header(data_manager):
                 return
             data_manager.move_next()
 
@@ -300,9 +298,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         try:
-            if file != "":
-                if _WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
-                    os.remove(file)
+            if file != "" and _WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
+                os.remove(file)
         except:
             self._send_json_error(200, "Cannot find file to delete")
             return
@@ -320,7 +317,8 @@ class _WebLoaderServer():
 
     @staticmethod
     def file_filter(name):
-        return name.endswith(".pdb") or name.endswith(".sdf") or name.endswith(".cif") or name.endswith(".ppt") or name.endswith(".pptx") or name.endswith(".pdf")
+        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".pdf")
+        return name.endswith(valid_ext)
 
     def start(self):
         self.__process.start()

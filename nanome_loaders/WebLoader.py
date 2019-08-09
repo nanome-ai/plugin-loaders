@@ -22,7 +22,7 @@ class WebLoader(nanome.PluginInstance):
         if not self.running:
             return
 
-        if (self.menu_manager.selected_page == self.menu_manager.home_page):
+        if self.menu_manager.selected_page == self.menu_manager.home_page:
             if timer() - self.__timer >= 3.0:
                 for ppt_reader in self.ppt_readers.values():
                     ppt_reader.update()
