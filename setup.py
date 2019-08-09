@@ -8,7 +8,7 @@ setup(
 	packages=find_packages(),
 	version = '0.3.3',
 	license='MIT',
-	description = 'Nanome Plugin deploying a few molecle loaders integrated with Nanome',
+	description = 'Nanome Plugin deploying a few molecule loaders integrated with Nanome',
 	long_description = README,
     long_description_content_type = "text/markdown",
 	author = 'Nanome',
@@ -33,13 +33,9 @@ setup(
 	],
 	package_data={
         "nanome_loaders": [
-            "_WebLoader/*.html",
-            "_WebLoader/*.ico",
-            "_WebLoader/*.js",
-            "_WebLoader/logo.png",
-            "_WebLoader/*.css",
-            "Menu/*.json",
-            "Menu/*.py",
+            "_WebLoader/*",
+            "_WebLoader/*/*",
+            "Menu/*",
         ]
 	},
 )
