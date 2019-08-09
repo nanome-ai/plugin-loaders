@@ -22,7 +22,7 @@ new Vue({
 
   methods: {
     async requestList() {
-      const res = await fetch('//localhost:8081/list')
+      const res = await fetch('/list')
       const json = await res.json()
       const files = json.file_list.map(name => ({ name }))
 
@@ -34,14 +34,7 @@ new Vue({
     },
 
     async deleteFile(filename) {
-      // const index = this.files.findIndex(f => f.full == filename)
-      // this.files.splice(index, 1)
-
-      await fetch('//localhost:8081', {
-        method: 'DELETE',
-        data: filename
-      })
-
+      await fetch(`/${filename}`, { method: 'DELETE' })
       await this.requestList()
     },
 
@@ -75,7 +68,7 @@ new Vue({
         data.append('files[]', file)
       }
 
-      await fetch('//localhost:8081/', {
+      await fetch('/', {
         method: 'POST',
         body: data
       })
