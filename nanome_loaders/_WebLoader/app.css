@@ -1,0 +1,145 @@
+:root {
+  --primary: #0e0f32;
+  --secondary: #2e70bf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--primary);
+}
+
+#app {
+  font-family: 'Open Sans', sans-serif;
+  height: 100%;
+}
+
+#container {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  max-width: 900px;
+  min-height: 100%;
+
+  text-align: center;
+  background: #fff;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+
+  font-size: 3rem;
+  margin-top: 2rem;
+}
+header h1 {
+  margin: 0 0.4em;
+  font-size: 1em;
+}
+header img {
+  height: 1em;
+  max-width: 400px;
+}
+.subheader {
+  margin-top: 1rem;
+}
+
+#files {
+  grid-template-columns: repeat(auto-fill, minmax(7em, 1fr));
+}
+.file {
+  position: relative;
+  display: inline-block;
+  margin: 1em;
+}
+.file .icon {
+  position: relative;
+
+  width: 5rem;
+  height: 5rem;
+
+  cursor: pointer;
+}
+.file.new-file .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3em;
+  border: 4px solid #ccc;
+  border-radius: 10px;
+}
+.file.new-file .icon:active {
+  background: #ccc;
+}
+.file .delete {
+  position: absolute;
+  top: -4px;
+  right: 0;
+
+  display: none;
+
+  width: 2em;
+  height: 2em;
+
+  color: #fff;
+  background: #000;
+
+  border: 0;
+  border-radius: 50%;
+}
+.file:hover .delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file:hover .delete:hover {
+  background: #d00;
+}
+.file .filename {
+  width: 5em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#dropzone {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+#dropzone .banner {
+  padding: 3em 0;
+  width: 100%;
+
+  font-size: 2em;
+  text-align: center;
+  pointer-events: none;
+
+  color: #eee;
+  background: var(--secondary);
+}
