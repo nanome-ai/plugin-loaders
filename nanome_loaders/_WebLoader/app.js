@@ -18,6 +18,9 @@ new Vue({
     })
 
     this.requestList()
+
+    // query for new files every 5 seconds
+    setInterval(this.requestList, 5000)
   },
 
   methods: {
