@@ -4,3 +4,4 @@ build/
 dist/
 nanome_loaders.egg-info/
 nanome/
+nanome_loaders/_WebLoader/files
