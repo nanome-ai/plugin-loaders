@@ -53,7 +53,7 @@ new Vue({
       this.isUploading = true
 
       const numBefore = files.length
-      files = [...files].filter(f => {
+      files = Array.from(files).filter(f => {
         const [, ext] = /(\.\w+)$/.exec(f.name)
         return this.validExt.includes(ext)
       })
@@ -63,16 +63,19 @@ new Vue({
         alert(`${numRemoved} unsupported files skipped`)
       }
 
-      const data = new FormData()
-      for (const file of files) {
-        data.append('files[]', file)
-      }
+      // only post if we have valid files
+      if (files.length) {
+        const data = new FormData()
+        for (const file of files) {
+          data.append('files[]', file)
+        }
 
-      await fetch('/', {
-        method: 'POST',
-        body: data
-      })
-      await this.requestList()
+        await fetch('/', {
+          method: 'POST',
+          body: data
+        })
+        await this.requestList()
+      }
 
       this.isUploading = false
     }
