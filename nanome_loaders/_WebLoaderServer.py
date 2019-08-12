@@ -31,6 +31,10 @@ def get_type(format):
     except:
         return Types[""]
 
+file_dir = os.path.join(os.path.dirname(__file__), '_WebLoader', 'files')
+if not os.path.exists(file_dir):
+    os.mkdir(file_dir)
+
 class DataManager(object):
     def __init__(self):
         self.newline_length = 1
@@ -117,7 +121,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         response = dict()
         response['success'] = True
         response['file_list'] = []
-        file_list = [filename for filename in os.listdir(".") if _WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.listdir(file_dir) if _WebLoaderServer.file_filter(filename)]
         for file in file_list:
             response['file_list'].append(file)
         self._write(json.dumps(response).encode("utf-8"))
@@ -206,6 +210,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if file_name == "":
                 continue
 
+            file_name = os.path.join(file_dir, file_name)
+
             # If file already exists
             if os.path.isfile(file_name):
                 self._send_json_error(200, file_name + " already exists")
@@ -292,6 +298,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             parsed_url = urlparse(self.path)
             file = parsed_url.path[1:]
             file = urllib.parse.unquote(file)
+            file = os.path.join(file_dir, file)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
             self._send_json_error(200, "Parsing problem")
