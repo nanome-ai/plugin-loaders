@@ -33,6 +33,7 @@ class MenuManager(object):
         self.home_page = MenuManager.HomePage(home_tab, home, address, load_file_delegate)
         self.selected_page = self.home_page
         self.uploaded = False
+        self.Refresh()
 
     def ReadJsons(self):
         self.plugin.menu = nanome.ui.Menu.io.from_json(MENU_PATH)
