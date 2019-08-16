@@ -298,7 +298,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             parsed_url = urlparse(self.path)
             file = parsed_url.path[1:]
             file = urllib.parse.unquote(file)
-            file = os.path.join(file_dir, file)
+            if file != "":
+                file = os.path.join(file_dir, file)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
             self._send_json_error(200, "Parsing problem")
