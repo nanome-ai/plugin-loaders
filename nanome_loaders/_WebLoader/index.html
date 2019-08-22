@@ -41,7 +41,7 @@
         </div>
 
         <template v-else>
-          <div>
+          <div class="display-options">
             <div class="display-mode">
               <input
                 v-model="displayMode"
@@ -60,10 +60,11 @@
               />
               <label for="display-mode-grid"><i class="fas fa-th"></i> grid</label>
             </div>
+            <input v-model="search" type="search" class="search" placeholder="search" />
           </div>
 
           <div v-if="displayMode == 'grid'" id="files" class="grid">
-            <div v-for="file in files" :key="file.name" :title="file.full" class="file">
+            <div v-for="file in filteredFiles" :key="file.name" :title="file.full" class="file">
               <button @click="deleteFile(file.full)" class="delete">&times;</button>
               <img :src="`img/icon-${file.ext}.png`" class="icon" />
               <div class="filename">{{ file.name }}</div>
@@ -71,7 +72,7 @@
           </div>
 
           <div v-else id="files" class="list">
-            <div v-for="file in files" :key="file.name" class="file-row flex">
+            <div v-for="file in filteredFiles" :key="file.name" class="file-row flex">
               <img :src="`img/icon-${file.ext}.png`" class="icon" />
               <div class="filename flex-grow">{{ file.full }}</div>
               <button @click="deleteFile(file.full)" class="delete">delete</button>

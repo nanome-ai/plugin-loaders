@@ -60,11 +60,21 @@ header img {
   margin-top: 1rem;
 }
 
+.display-options {
+  margin-bottom: 1rem;
+}
+
+.search {
+  font: inherit;
+  border: 2px solid #333;
+  border-radius: 4px;
+  padding: 0.5em 1em;
+}
+
 .display-mode {
   display: inline-flex;
   border: 2px solid #333;
   border-radius: 4px;
-  margin-bottom: 1rem;
 }
 .display-mode input {
   position: absolute;
