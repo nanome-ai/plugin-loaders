@@ -6,6 +6,7 @@ new Vue({
   data: {
     files: [],
     numDropping: 0,
+    displayMode: 'grid',
     isDroppable: false,
     isUploading: false,
     validExt: ['.pdb', '.sdf', '.cif', '.ppt', '.pptx', '.pdf']
