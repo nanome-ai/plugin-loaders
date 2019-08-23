@@ -7,6 +7,7 @@ import os
 import traceback
 import re
 import json
+from datetime import datetime, timedelta
 
 import nanome
 from nanome.util import Logs
@@ -117,6 +118,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Special GET case: get file list
     def _send_list(self):
+        self.file_cleanup()
         self._set_headers(200, 'application/json')
         response = dict()
         response['success'] = True
@@ -319,7 +321,25 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         if enable_logs:
             http.server.BaseHTTPRequestHandler.log_message(self, format, *args)
 
+    # Check file last accessed time and remove those older than 28 days
+    def file_cleanup(self):
+        # don't execute more than once every 5 min
+        if datetime.today() - _WebLoaderServer.last_cleanup < timedelta(minutes=5):
+            return
+
+        _WebLoaderServer.last_cleanup = datetime.today()
+        expiry_date = datetime.today() - timedelta(days=28)
+
+        for file_name in os.listdir(file_dir):
+            file_path = os.path.join(file_dir, file_name)
+            last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
+
+            if last_accessed < expiry_date:
+                os.remove(file_path)
+
 class _WebLoaderServer():
+    last_cleanup = datetime.fromtimestamp(0)
+
     def __init__(self, port):
         self.__process = Process(target=_WebLoaderServer._start_process, args=(port,))
 
