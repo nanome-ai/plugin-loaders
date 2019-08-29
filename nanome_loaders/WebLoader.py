@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
 DEFAULT_KEEP_FILES_DAYS = 0
+FILES_DIR = os.path.join(os.path.dirname(__file__), '_WebLoader', 'files')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
@@ -41,7 +42,7 @@ class WebLoader(nanome.PluginInstance):
             self.big_timer = timer()
 
     def __refresh(self):
-        files = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if WebLoaderServer.file_filter(filename)]
+        files = [filename for filename in os.listdir(FILES_DIR) if WebLoaderServer.file_filter(filename)]
         self.menu_manager.UpdateFiles(files)
 
     def diff_files(self, old_files, new_files):
@@ -60,7 +61,7 @@ class WebLoader(nanome.PluginInstance):
 
     def load_molecule(self, name):
         extension = name.split(".")[-1]
-        file_path = os.path.join(os.path.dirname(__file__), '_WebLoader/') + name
+        file_path = os.path.join(FILES_DIR, name)
         if extension == "pdb":
             complex = Complex.io.from_pdb(path=file_path)
             self.add_bonds([complex], self.bonds_ready)
