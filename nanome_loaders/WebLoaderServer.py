@@ -123,7 +123,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         response = dict()
         response['success'] = True
         response['file_list'] = []
-        file_list = [filename for filename in os.listdir(file_dir) if _WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.listdir(file_dir) if WebLoaderServer.file_filter(filename)]
         for file in file_list:
             response['file_list'].append(file)
         self._write(json.dumps(response).encode("utf-8"))
@@ -220,7 +220,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # If file is not supported
-            if not _WebLoaderServer.file_filter(file_name):
+            if not WebLoaderServer.file_filter(file_name):
                 self._send_json_error(200, file_name + " format not supported")
                 return
 
@@ -308,7 +308,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         try:
-            if file != "" and _WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
+            if file != "" and WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
                 os.remove(file)
         except:
             self._send_json_error(200, "Cannot find file to delete")
@@ -324,10 +324,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     # Check file last accessed time and remove those older than 28 days
     def file_cleanup(self):
         # don't execute more than once every 5 min
-        if datetime.today() - _WebLoaderServer.last_cleanup < timedelta(minutes=5):
+        if datetime.today() - WebLoaderServer.last_cleanup < timedelta(minutes=5):
             return
 
-        _WebLoaderServer.last_cleanup = datetime.today()
+        WebLoaderServer.last_cleanup = datetime.today()
         expiry_date = datetime.today() - timedelta(days=28)
 
         for file_name in os.listdir(file_dir):
@@ -337,11 +337,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if last_accessed < expiry_date:
                 os.remove(file_path)
 
-class _WebLoaderServer():
+class WebLoaderServer():
     last_cleanup = datetime.fromtimestamp(0)
 
     def __init__(self, port):
-        self.__process = Process(target=_WebLoaderServer._start_process, args=(port,))
+        self.__process = Process(target=WebLoaderServer._start_process, args=(port,))
 
     @staticmethod
     def file_filter(name):

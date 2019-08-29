@@ -2,7 +2,7 @@ import nanome
 from nanome.util import Logs
 from nanome.api.structure import Complex
 
-from ._WebLoaderServer import _WebLoaderServer
+from .WebLoaderServer import WebLoaderServer
 from .Menu.MenuManager import MenuManager, PageTypes
 from .PPTConverter import PPTConverter
 import sys
@@ -40,7 +40,7 @@ class WebLoader(nanome.PluginInstance):
             self.big_timer = timer()
 
     def __refresh(self):
-        files = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if _WebLoaderServer.file_filter(filename)]
+        files = [filename for filename in os.listdir(os.path.join(os.path.dirname(__file__), '_WebLoader')) if WebLoaderServer.file_filter(filename)]
         self.menu_manager.UpdateFiles(files)
 
     def diff_files(self, old_files, new_files):
@@ -124,7 +124,7 @@ def main():
                 web_port = int(sys.argv[i + 1])
     except:
         pass
-    server = _WebLoaderServer(web_port)
+    server = WebLoaderServer(web_port)
     server.start()
 
     # Plugin
