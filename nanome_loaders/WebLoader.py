@@ -11,6 +11,7 @@ import socket
 from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
+DEFAULT_KEEP_FILES_DAYS = 0
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
@@ -118,13 +119,17 @@ class WebLoader(nanome.PluginInstance):
 def main():
     # Plugin server (for Web)
     web_port = DEFAULT_SERVER_PORT
+    keep_files_days = DEFAULT_KEEP_FILES_DAYS
+
     try:
         for i in range(len(sys.argv)):
             if sys.argv[i] == "-w":
                 web_port = int(sys.argv[i + 1])
+            elif sys.argv[i] == "-k":
+                keep_files_days = int(sys.argv[i + 1])
     except:
         pass
-    server = WebLoaderServer(web_port)
+    server = WebLoaderServer(web_port, keep_files_days)
     server.start()
 
     # Plugin

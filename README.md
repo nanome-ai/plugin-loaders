@@ -53,6 +53,12 @@ The port to open (the open used for the Web UI), can be changed by starting the 
 $ nanome-web-loader -w 8080
 ```
 
+To automatically delete files that haven't been accessed in a given number of days, use the -k option. For example, to delete untouched files after 2 weeks:
+
+```sh
+$ nanome-web-loader -k 14
+```
+
 In Nanome:
 
 - Activate Plugin

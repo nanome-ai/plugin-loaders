@@ -118,7 +118,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Special GET case: get file list
     def _send_list(self):
-        self.file_cleanup()
+        if WebLoaderServer.keep_files_days > 0:
+            self.file_cleanup()
+
         self._set_headers(200, 'application/json')
         response = dict()
         response['success'] = True
@@ -328,7 +330,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         WebLoaderServer.last_cleanup = datetime.today()
-        expiry_date = datetime.today() - timedelta(days=28)
+        expiry_date = datetime.today() - timedelta(days=WebLoaderServer.keep_files_days)
 
         for file_name in os.listdir(file_dir):
             file_path = os.path.join(file_dir, file_name)
@@ -339,8 +341,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
 class WebLoaderServer():
     last_cleanup = datetime.fromtimestamp(0)
+    keep_files_days = 0
 
-    def __init__(self, port):
+    def __init__(self, port, keep_files_days):
+        WebLoaderServer.keep_files_days = keep_files_days
         self.__process = Process(target=WebLoaderServer._start_process, args=(port,))
 
     @staticmethod
