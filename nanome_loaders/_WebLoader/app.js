@@ -5,10 +5,22 @@ new Vue({
 
   data: {
     files: [],
+    search: '',
     numDropping: 0,
+    displayMode: 'grid',
     isDroppable: false,
     isUploading: false,
     validExt: ['.pdb', '.sdf', '.cif', '.ppt', '.pptx', '.pdf']
+  },
+
+  computed: {
+    filteredFiles() {
+      return this.files.filter(file => {
+        return this.search.split(' ').every(part => {
+          return file.full.indexOf(part) > -1
+        })
+      }).sort((a, b) => a.full < b.full ? -1 : 1)
+    }
   },
 
   created() {
