@@ -168,6 +168,8 @@ class MenuManager(object):
             self.selected_file = None
 
             def load_file(button):
+                if self.selected_file == None:
+                    return
                 load_file_delegate(self.selected_file.file_name)
 
             self.load_button.unuseable = True
