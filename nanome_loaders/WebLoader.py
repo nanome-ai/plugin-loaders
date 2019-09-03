@@ -11,7 +11,7 @@ import socket
 from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
-FILES_DIR = os.path.expanduser('~/nanome-web-loader-files')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):

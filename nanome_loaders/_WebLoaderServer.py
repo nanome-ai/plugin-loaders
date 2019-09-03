@@ -31,7 +31,7 @@ def get_type(format):
     except:
         return Types[""]
 
-FILES_DIR = os.path.expanduser('~/nanome-web-loader-files')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
 if not os.path.exists(FILES_DIR):
     os.mkdir(FILES_DIR)
 
