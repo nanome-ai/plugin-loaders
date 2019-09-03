@@ -7,6 +7,7 @@ import os
 import traceback
 import re
 import json
+from datetime import datetime, timedelta
 
 import nanome
 from nanome.util import Logs
@@ -117,11 +118,14 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Special GET case: get file list
     def _send_list(self):
+        if WebLoaderServer.keep_files_days > 0:
+            self.file_cleanup()
+
         self._set_headers(200, 'application/json')
         response = dict()
         response['success'] = True
         response['file_list'] = []
-        file_list = [filename for filename in os.listdir(FILES_DIR) if _WebLoaderServer.file_filter(filename)]
+        file_list = [filename for filename in os.listdir(FILES_DIR) if WebLoaderServer.file_filter(filename)]
         for file in file_list:
             response['file_list'].append(file)
         self._write(json.dumps(response).encode("utf-8"))
@@ -218,7 +222,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # If file is not supported
-            if not _WebLoaderServer.file_filter(file_name):
+            if not WebLoaderServer.file_filter(file_name):
                 self._send_json_error(200, file_name + " format not supported")
                 return
 
@@ -306,7 +310,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         try:
-            if file != "" and _WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
+            if file != "" and WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
                 os.remove(file)
         except:
             self._send_json_error(200, "Cannot find file to delete")
@@ -319,9 +323,29 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         if enable_logs:
             http.server.BaseHTTPRequestHandler.log_message(self, format, *args)
 
-class _WebLoaderServer():
-    def __init__(self, port):
-        self.__process = Process(target=_WebLoaderServer._start_process, args=(port,))
+    # Check file last accessed time and remove those older than 28 days
+    def file_cleanup(self):
+        # don't execute more than once every 5 min
+        if datetime.today() - WebLoaderServer.last_cleanup < timedelta(minutes=5):
+            return
+
+        WebLoaderServer.last_cleanup = datetime.today()
+        expiry_date = datetime.today() - timedelta(days=WebLoaderServer.keep_files_days)
+
+        for file_name in os.listdir(FILES_DIR):
+            file_path = os.path.join(FILES_DIR, file_name)
+            last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
+
+            if last_accessed < expiry_date:
+                os.remove(file_path)
+
+class WebLoaderServer():
+    last_cleanup = datetime.fromtimestamp(0)
+    keep_files_days = 0
+
+    def __init__(self, port, keep_files_days):
+        WebLoaderServer.keep_files_days = keep_files_days
+        self.__process = Process(target=WebLoaderServer._start_process, args=(port,))
 
     @staticmethod
     def file_filter(name):

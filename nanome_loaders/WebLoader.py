@@ -2,7 +2,7 @@ import nanome
 from nanome.util import Logs
 from nanome.api.structure import Complex
 
-from ._WebLoaderServer import _WebLoaderServer
+from .WebLoaderServer import WebLoaderServer
 from .Menu.MenuManager import MenuManager, PageTypes
 from .PPTConverter import PPTConverter
 import sys
@@ -11,6 +11,7 @@ import socket
 from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
+DEFAULT_KEEP_FILES_DAYS = 0
 FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
 
 # Plugin instance (for Nanome)
@@ -41,7 +42,7 @@ class WebLoader(nanome.PluginInstance):
             self.big_timer = timer()
 
     def __refresh(self):
-        files = [filename for filename in os.listdir(FILES_DIR) if _WebLoaderServer.file_filter(filename)]
+        files = [filename for filename in os.listdir(FILES_DIR) if WebLoaderServer.file_filter(filename)]
         self.menu_manager.UpdateFiles(files)
 
     def diff_files(self, old_files, new_files):
@@ -132,13 +133,17 @@ class WebLoader(nanome.PluginInstance):
 def main():
     # Plugin server (for Web)
     web_port = DEFAULT_SERVER_PORT
+    keep_files_days = DEFAULT_KEEP_FILES_DAYS
+
     try:
         for i in range(len(sys.argv)):
             if sys.argv[i] == "-w":
                 web_port = int(sys.argv[i + 1])
+            elif sys.argv[i] == "-k":
+                keep_files_days = int(sys.argv[i + 1])
     except:
         pass
-    server = _WebLoaderServer(web_port)
+    server = WebLoaderServer(web_port, keep_files_days)
     server.start()
 
     # Plugin
