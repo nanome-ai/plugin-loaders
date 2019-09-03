@@ -12,7 +12,7 @@ from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
 DEFAULT_KEEP_FILES_DAYS = 0
-FILES_DIR = os.path.join(os.path.dirname(__file__), '_WebLoader', 'files')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
@@ -60,24 +60,37 @@ class WebLoader(nanome.PluginInstance):
         self.big_timer = timer()
 
     def load_molecule(self, name):
+        complex_name = '.'.join(name.split(".")[:-1])
         extension = name.split(".")[-1]
         file_path = os.path.join(FILES_DIR, name)
+
         if extension == "pdb":
             complex = Complex.io.from_pdb(path=file_path)
+            complex.name = complex_name
             self.add_bonds([complex], self.bonds_ready)
-            return
         elif extension == "sdf":
             complex = Complex.io.from_sdf(path=file_path)
+            complex.name = complex_name
             self.bonds_ready([complex])
         elif extension == "cif":
             complex = Complex.io.from_mmcif(path=file_path)
+            complex.name = complex_name
             self.add_bonds([complex], self.bonds_ready)
-            return
         elif extension == "ppt" or extension == "pptx" or extension == "pdf":
             self.display_ppt(file_path)
         else:
             Logs.warning("Unknown file extension for file", name)
             return
+
+    def save_molecule(self, save_type, complex):
+        path = os.path.join(FILES_DIR, complex.name)
+
+        if save_type == "PDB":
+            complex.io.to_pdb(path + ".pdb")
+        elif save_type == "SDF":
+            complex.io.to_sdf(path + ".sdf")
+        elif save_type == "MMCIF":
+            complex.io.to_mmcif(path + ".cif")
 
     def bonds_ready(self, complex_list):
         self.add_dssp(complex_list, self.send_complexes)
