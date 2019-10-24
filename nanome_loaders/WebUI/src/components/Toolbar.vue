@@ -34,7 +34,7 @@
       <fa-icon icon="cloud-upload-alt" />
       <span class="hidden lg:inline"> upload</span>
     </button>
-    <div class="flex-grow"></div>
+    <!-- <div class="flex-grow"></div>
     <div class="search relative">
       <input
         type="search"
@@ -43,7 +43,7 @@
         placeholder="search..."
       />
       <fa-icon icon="search" class="absolute text-gray-400 icon" />
-    </div>
+    </div> -->
   </div>
 </template>
 
