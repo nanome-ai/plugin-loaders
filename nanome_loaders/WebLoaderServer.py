@@ -118,6 +118,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except:
             Logs.warning("Connection reset while responding", self.client_address)
 
+    def _path_is_safe(self, base_path, sub_path):
+        safe = os.path.realpath(base_path)
+        path = os.path.realpath(os.path.join(base_path, sub_path))
+        common = os.path.commonprefix((safe, path))
+        return common == safe
+
     # Special GET case: get file list
     def _send_list(self, folder=None):
         if WebLoaderServer.keep_files_days > 0:
@@ -140,12 +146,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         response['folders'].sort()
         response['files'].sort()
         self._write(json.dumps(response).encode("utf-8"))
-
-    def _path_is_safe(self, base_path, sub_path):
-        safe = os.path.realpath(base_path)
-        path = os.path.realpath(os.path.join(base_path, sub_path))
-        common = os.path.commonprefix((safe, path))
-        return common == safe
 
     # Standard GET case: get a file
     def _try_get_resource(self, path):

@@ -12,13 +12,16 @@ from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
 DEFAULT_KEEP_FILES_DAYS = 0
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/public')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
     def start(self):
         self.running = False
         self.ppt_readers = {}
+        self.files_dir = FILES_DIR
+        self.current_dir = self.files_dir
+        self.on_run()
 
     def update(self):
         if not self.running:
@@ -42,20 +45,34 @@ class WebLoader(nanome.PluginInstance):
             self.big_timer = timer()
 
     def __refresh(self):
-        files = [filename for filename in os.listdir(FILES_DIR) if WebLoaderServer.file_filter(filename)]
-        self.menu_manager.UpdateFiles(files)
+        items = os.listdir(self.current_dir)
 
-    def diff_files(self, old_files, new_files):
-        old_files = set(old_files)
-        new_files = set(new_files)
-        remove_files = old_files - new_files
-        add_files = new_files - old_files
-        return add_files, remove_files
+        def isdir(item):
+            return os.path.isdir(os.path.join(self.current_dir, item))
+
+        files = [item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)]
+        folders = [item for item in items if isdir(item)]
+
+        if self.current_dir != self.files_dir:
+            folders.insert(0, '..')
+
+        self.menu_manager.UpdateList(files, folders)
+
+    def chdir(self, folder):
+        self.current_dir = os.path.abspath(os.path.join(self.current_dir, folder))
+        self.menu_manager.ClearList()
+
+        # calculate breadcrumbs
+        subpath = self.current_dir[len(self.files_dir):]
+        path = 'folder: public' + subpath.replace('/', ' / ')
+        self.menu_manager.home_page.UpdateBreadcrumbs(path)
+
+        self.__refresh()
 
     def on_run(self):
         self.running = True
         self.menu_manager = MenuManager(self, WebLoader.get_server_url(), self.load_molecule)
-        self.__refresh()
+        self.chdir('.')
         self.__timer = timer()
         self.big_timer = timer()
 
