@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
 DEFAULT_KEEP_FILES_DAYS = 0
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/public')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/shared')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
@@ -65,7 +65,7 @@ class WebLoader(nanome.PluginInstance):
 
         # calculate breadcrumbs
         subpath = self.current_dir[len(self.files_dir):]
-        path = 'folder: public' + subpath.replace('/', ' / ')
+        path = 'folder: shared' + subpath.replace('/', ' / ')
         self.menu_manager.home_page.UpdateBreadcrumbs(path)
 
         self.__refresh()

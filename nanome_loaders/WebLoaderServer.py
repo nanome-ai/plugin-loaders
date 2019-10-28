@@ -34,7 +34,7 @@ def get_type(format):
         return Types[""]
 
 SERVER_DIR = os.path.join(os.path.dirname(__file__), 'WebUI/dist')
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/public')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/shared')
 if not os.path.exists(FILES_DIR):
     os.mkdir(FILES_DIR)
 
