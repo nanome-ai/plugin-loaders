@@ -180,7 +180,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self._send_list(path[7:] or None)
             return
 
-        if path == '/':
+        if path == '/' or path.endswith('/'):
             path = 'index.html'
         if path.startswith('/'):
             path = path[1:]
