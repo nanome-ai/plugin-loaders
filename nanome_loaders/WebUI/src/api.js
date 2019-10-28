@@ -21,6 +21,7 @@ const API = {
     }
 
     const data = await API.list(path)
+    if (!data.success) throw new Error(data.error)
     folder.path = path
 
     folder.folders = data.folders

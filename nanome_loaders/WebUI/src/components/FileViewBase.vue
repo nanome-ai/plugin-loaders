@@ -29,9 +29,14 @@ export default {
   methods: {
     async refresh(newPath) {
       if (this.beforeRefresh && newPath) this.beforeRefresh()
-      const data = await API.getFolder(this.path)
-      this.folders = data.folders
-      this.files = data.files
+
+      try {
+        const data = await API.getFolder(this.path)
+        this.folders = data.folders
+        this.files = data.files
+      } catch (e) {
+        this.$router.push('/')
+      }
     },
 
     contextmenu(event, item) {

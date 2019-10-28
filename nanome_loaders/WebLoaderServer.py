@@ -122,7 +122,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         safe = os.path.realpath(base_path)
         path = os.path.realpath(os.path.join(base_path, sub_path))
         common = os.path.commonprefix((safe, path))
-        return common == safe
+        return os.path.exists(path) and common == safe
 
     # Special GET case: get file list
     def _send_list(self, folder=None):
@@ -180,7 +180,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self._send_list(path[7:] or None)
             return
 
-        if path == '/' or path.endswith('/'):
+        # if path doesn't contain extension, serve index
+        if re.search(r'\.[^/]+$', path) is None:
             path = 'index.html'
         if path.startswith('/'):
             path = path[1:]
