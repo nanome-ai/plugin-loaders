@@ -12,6 +12,7 @@
       <input
         class="visually-hidden"
         @change="onChange"
+        :accept="extensions.join(',')"
         type="file"
         multiple
         ref="input"
@@ -21,7 +22,7 @@
           Uploading files...
         </template>
         <template v-else-if="!numDropping">
-          Drop files or
+          Drop items or
           <span class="text-blue-500">click</span>
           to upload
         </template>
@@ -44,6 +45,7 @@
 <script>
 import API from '@/api'
 import { getFiles } from '@/files'
+import extensions from '@/extensions'
 
 export default {
   props: {
@@ -51,6 +53,7 @@ export default {
   },
 
   data: () => ({
+    extensions,
     showDropzone: false,
     isHovering: false,
     isUploading: false,
@@ -98,10 +101,28 @@ export default {
 
     async upload(files) {
       this.isUploading = true
-      await API.upload(this.path, files)
-      this.$emit('upload')
+
+      const skipped = []
+      const upload = []
+      for (const file of files) {
+        const isSupported = this.extensions.some(ext => file.name.endsWith(ext))
+        isSupported ? upload.push(file) : skipped.push(file)
+      }
+
+      if (upload.length) {
+        await API.upload(this.path, upload)
+        this.$emit('upload')
+      }
+
       this.isUploading = false
       this.showDropzone = false
+
+      if (!upload.length) {
+        alert('No supported files found. Skipping upload.')
+      } else if (skipped.length) {
+        const list = skipped.map(f => f.name).join('\n')
+        alert(`${skipped.length} unsupported files skipped:\n${list}`)
+      }
     },
 
     show() {

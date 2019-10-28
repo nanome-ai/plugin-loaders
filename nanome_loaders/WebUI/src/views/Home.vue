@@ -9,7 +9,7 @@
 
     <p class="text-lg py-5">
       Drag and drop or click the new file button to upload files.<br />
-      Supports <b>.pdb .sdf .cif .ppt .pptx .pdf</b>
+      Supports <b>{{ extensions.join(' ') }}</b>
     </p>
 
     <file-explorer />
@@ -18,9 +18,11 @@
 
 <script>
 import FileExplorer from '@/components/FileExplorer'
+import extensions from '@/extensions'
 
 export default {
-  components: { FileExplorer }
+  components: { FileExplorer },
+  data: () => ({ extensions })
 }
 </script>
 
