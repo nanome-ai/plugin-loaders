@@ -243,21 +243,25 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if file_name == "":
                 continue
 
+            # If file is not supported
+            if not WebLoaderServer.file_filter(file_name):
+                self._send_json_error(400, file_name + " format not supported")
+                return
+
             subfolder = os.path.join(folder, os.path.dirname(file_name))
             if not os.path.exists(subfolder):
                 os.makedirs(subfolder)
 
             file_path = os.path.join(folder, file_name)
 
-            # If file already exists
-            if os.path.isfile(file_path):
-                self._send_json_error(400, file_name + " already exists")
-                return
+            # rename on duplicates: file.txt -> file (n).txt
+            reg = r'(.+/)([^/]+?)(?: \((\d+)\))?(\.\w+)'
+            (path, name, copy, ext) = re.search(reg, file_path).groups()
+            copy = 1 if copy is None else int(copy)
 
-            # If file is not supported
-            if not WebLoaderServer.file_filter(file_name):
-                self._send_json_error(400, file_name + " format not supported")
-                return
+            while os.path.isfile(file_path):
+                copy += 1
+                file_path = '%s%s (%d)%s' % (path, name, copy, ext)
 
             # Create file
             with open(file_path, "wb") as f:
