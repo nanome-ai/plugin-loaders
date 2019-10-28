@@ -17,7 +17,10 @@
             event="dblclick"
             @contextmenu.native.prevent="contextmenu($event, folder + '/')"
           >
-            <fa-icon icon="folder" class="icon mr-2" />
+            <fa-icon
+              :icon="expanded[folder] ? 'folder-open' : 'folder'"
+              class="icon mr-2"
+            />
             <div class="filename">{{ folder }}</div>
           </router-link>
         </li>
