@@ -92,7 +92,7 @@ class MenuManager(object):
         for item in new_items:
             if item not in add_items:
                 continue
-            self.home_page.AddItem(item, item in files)
+            self.home_page.AddItem(item, item in folders)
             changed = True
 
         if changed:
@@ -197,7 +197,7 @@ class MenuManager(object):
             self.breadcrumbs.text_value = path
             MenuManager.RefreshMenu(self.breadcrumbs)
 
-        def AddItem(self, name, is_file):
+        def AddItem(self, name, is_folder):
             new_item = Prefabs.list_item_prefab.clone()
             new_item.name = name
             button = new_item.find_node("ButtonNode").get_content()
@@ -205,7 +205,7 @@ class MenuManager(object):
             label.text_value = name
             button.item_name = name
 
-            if not is_file and name != '..':
+            if is_folder and name != '..':
                 label.text_value += '/'
 
             def FilePressedCallback(button):
@@ -214,7 +214,7 @@ class MenuManager(object):
             def FolderPressedCallback(button):
                 MenuManager.instance.plugin.chdir(button.item_name)
 
-            cb = FilePressedCallback if is_file else FolderPressedCallback
+            cb = FolderPressedCallback if is_folder else FilePressedCallback
             button.register_pressed_callback(cb)
 
             self.file_list.items.append(new_item)
@@ -227,12 +227,13 @@ class MenuManager(object):
                     break
 
         def ToggleUpload(self, button=None, show=None):
-            self.showing_upload = not self.showing_upload if show is None else show
-            self.file_upload.enabled = self.showing_upload
-            self.file_explorer.enabled = not self.showing_upload
-            self.action_button.set_all_text('cancel' if self.showing_upload else 'upload here')
+            show = not self.showing_upload if show is None else show
+            self.showing_upload = show
+            self.file_upload.enabled = show
+            self.file_explorer.enabled = not show
+            self.action_button.set_all_text('cancel' if show else 'upload here')
 
-            if self.showing_upload:
+            if show:
                 plugin = MenuManager.instance.plugin
                 plugin.request_complex_list(self.PopulateComplexes)
                 self.panel_list.enabled = True
