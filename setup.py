@@ -33,8 +33,8 @@ setup(
 	],
 	package_data={
         "nanome_loaders": [
-            "_WebLoader/*",
-            "_WebLoader/*/*",
+            "WebUI/dist/*",
+            "WebUI/dist/*/*",
             "Menu/*",
         ]
 	},
