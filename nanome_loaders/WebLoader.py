@@ -1,5 +1,6 @@
 import nanome
 from nanome.util import Logs
+from nanome.util.enums import NotificationTypes
 from nanome.api.structure import Complex
 
 from .WebLoaderServer import WebLoaderServer
@@ -79,7 +80,7 @@ class WebLoader(nanome.PluginInstance):
     def load_molecule(self, name):
         complex_name = '.'.join(name.split(".")[:-1])
         extension = name.split(".")[-1]
-        file_path = os.path.join(FILES_DIR, name)
+        file_path = os.path.join(self.current_dir, name)
 
         if extension == "pdb":
             complex = Complex.io.from_pdb(path=file_path)
@@ -100,7 +101,7 @@ class WebLoader(nanome.PluginInstance):
             return
 
     def save_molecule(self, save_type, complex):
-        path = os.path.join(FILES_DIR, complex.name)
+        path = os.path.join(self.current_dir, complex.name)
 
         if save_type == "PDB":
             complex.io.to_pdb(path + ".pdb")
@@ -108,6 +109,8 @@ class WebLoader(nanome.PluginInstance):
             complex.io.to_sdf(path + ".sdf")
         elif save_type == "MMCIF":
             complex.io.to_mmcif(path + ".cif")
+
+        self.send_notification(NotificationTypes.success, complex.name + " saved")
 
     def bonds_ready(self, complex_list):
         self.add_dssp(complex_list, self.send_complexes)
