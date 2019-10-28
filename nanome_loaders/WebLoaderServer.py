@@ -379,12 +379,13 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         WebLoaderServer.last_cleanup = datetime.today()
         expiry_date = datetime.today() - timedelta(days=WebLoaderServer.keep_files_days)
 
-        for file_name in os.listdir(FILES_DIR):
-            file_path = os.path.join(FILES_DIR, file_name)
-            last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
+        for (dirpath, _, filenames) in os.walk(FILES_DIR):
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
 
-            if last_accessed < expiry_date:
-                os.remove(file_path)
+                if last_accessed < expiry_date:
+                    os.remove(file_path)
 
 class WebLoaderServer():
     last_cleanup = datetime.fromtimestamp(0)
@@ -396,7 +397,7 @@ class WebLoaderServer():
 
     @staticmethod
     def file_filter(name):
-        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".pdf")
+        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".odp", ".pdf")
         return name.endswith(valid_ext)
 
     def start(self):
