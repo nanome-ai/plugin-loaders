@@ -242,6 +242,12 @@ class MenuManager(object):
             MenuManager.RefreshMenu()
 
         def PopulateComplexes(self, complexes):
+            def select_complex(button):
+                self.selected_complex = button.complex
+                self.panel_list.enabled = False
+                self.panel_upload.enabled = True
+                MenuManager.RefreshMenu()
+
             self.complex_list.items = []
             for complex in complexes:
                 item = Prefabs.list_item_prefab.clone()
@@ -249,16 +255,10 @@ class MenuManager(object):
                 label.text_value = complex.name
                 button = item.find_node("ButtonNode").get_content()
                 button.complex = complex
-                button.register_pressed_callback(self.SelectComplex)
+                button.register_pressed_callback(select_complex)
                 self.complex_list.items.append(item)
 
             MenuManager.RefreshMenu(self.complex_list)
-
-        def SelectComplex(self, button):
-            self.selected_complex = button.complex
-            self.panel_list.enabled = False
-            self.panel_upload.enabled = True
-            MenuManager.RefreshMenu()
 
         def UploadComplex(self, save_type, button):
             plugin = MenuManager.instance.plugin
