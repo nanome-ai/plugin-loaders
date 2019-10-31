@@ -4,7 +4,6 @@ from functools import partial
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 MENU_PATH = dir_path + "/WebLoad.json"
-UPLOAD_TAB_PATH = dir_path + "/UploadTab.json"
 PPT_TAB_PATH = dir_path + "/PPTTab.json"
 IMAGE_TAB_PATH = dir_path + "/ImageTab.json"
 LIST_ITEM_PATH = dir_path + "/ListItem.json"
@@ -17,9 +16,8 @@ class Prefabs(object):
 
 class PageTypes(nanome.util.IntEnum):
     Home = 1
-    Upload = 2
-    Image = 3
-    PPT = 4
+    Image = 2
+    PPT = 3
 
 #Singleton class.
 class MenuManager(object):
@@ -35,10 +33,6 @@ class MenuManager(object):
         home_tab = self.plugin.menu.root.find_node("HomeTab")
         self.home_page = MenuManager.HomePage(home_tab, home, address, load_file_delegate)
         self.selected_page = self.home_page
-
-        upload_page = nanome.ui.LayoutNode.io.from_json(UPLOAD_TAB_PATH).get_children()[0]
-        upload_tab = self.plugin.menu.root.find_node("UploadTab")
-        self.upload_page = MenuManager.UploadPage(upload_tab, upload_page)
 
         self.uploaded = False
         self.Refresh()
@@ -78,28 +72,29 @@ class MenuManager(object):
             self.plugin.menu.enable = True
             self.plugin.update_menu(self.plugin.menu)
 
-    def AddFile(self, name):
-        self.home_page.AddFile(name)
-        self.Refresh()
+    def ClearList(self):
+        self.home_page.file_list.items.clear()
 
-    def RemoveFile(self, name):
-        self.home_page.RemoveFile(name)
-        self.Refresh()
+    def UpdateList(self, files, folders):
+        old_items = set(map(lambda item: item.name, self.home_page.file_list.items))
+        new_items = folders + files
 
-    def UpdateFiles(self, names):
-        file_names = set(map(lambda item: item.name, self.home_page.file_list.items))
-        add_set = set(names)
-        remove_files = file_names - add_set
+        add_set = set(new_items)
+        remove_items = old_items - add_set
+        add_items = add_set - old_items
         changed = False
 
-        for file in remove_files:
-            self.home_page.RemoveFile(file)
+        for item in remove_items:
+            self.home_page.RemoveItem(item)
             changed = True
 
-        add_files = add_set - file_names
-        for file in add_files:
-            self.home_page.AddFile(file)
+        # iterate list to preserve ordering
+        for item in new_items:
+            if item not in add_items:
+                continue
+            self.home_page.AddItem(item, item in folders)
             changed = True
+
         if changed:
             self.Refresh()
 
@@ -164,90 +159,95 @@ class MenuManager(object):
             self.base = page
             self.type = PageTypes.Home
             self.tab_button = self.tab_base.get_content()
+            self.load_file_delegate = load_file_delegate
+            self.showing_upload = False
 
             def tab_pressed(button):
                 self.menu_manager.SwitchTab(self)
             self.tab_button.register_pressed_callback(tab_pressed)
-            self.load_button = self.base.find_node("LoadButton").get_content()
+
+            self.action_button = self.base.find_node("ActionButton").get_content()
+            self.action_button.register_pressed_callback(self.ToggleUpload)
+
             instruction_label = self.base.find_node("InstructionLabel").get_content()
             instruction_label.text_value = "Add files by visiting " + address + " in your browser"
+            self.breadcrumbs = self.base.find_node("Breadcrumbs").get_content()
+
+            self.file_explorer = self.base.find_node("FileExplorer")
             self.file_list = self.base.find_node("FileList").get_content()
+            self.file_upload = self.base.find_node("FileUpload")
 
-            self.selected_file = None
-
-            def load_file(button):
-                if self.selected_file == None:
-                    return
-                load_file_delegate(self.selected_file.file_name)
-
-            self.load_button.unusable = True
-            self.load_button.register_pressed_callback(load_file)
-            self.select()
-
-        def AddFile(self, name):
-            new_file = Prefabs.list_item_prefab.clone()
-            new_file.name = name
-            button = new_file.find_node("ButtonNode").get_content()
-            label = new_file.find_node("LabelNode").get_content()
-            label.text_value = name
-            button.file_name = name
-
-            def FilePressedCallback(button):
-                if not self.selected_file is None:
-                    self.selected_file.selected = False
-                    MenuManager.RefreshMenu(self.selected_file)
-                self.selected_file = button
-                self.selected_file.selected = True
-                self.load_button.unusable = False
-                MenuManager.RefreshMenu(self.selected_file)
-                MenuManager.RefreshMenu(self.load_button)
-            button.register_pressed_callback(FilePressedCallback)
-
-            self.file_list.items.append(new_file)
-
-        def RemoveFile(self, name):
-            if self.selected_file and self.selected_file.file_name == name:
-                self.selected_file = None
-                self.load_button.unusable = True
-            files = self.file_list.items
-            deleted_file = None
-            for child in files:
-                if child.name == name:
-                    deleted_file = child
-                    break
-            if deleted_file == None:
-                nanome.util.Logs.debug("Cannot delete file " + name + ". File not found.")
-            else:
-                files.remove(deleted_file)
-
-    class UploadPage(Page):
-        def __init__(self, tab, page):
-            self.tab_base = tab
-            self.base = page
-            self.type = PageTypes.Upload
-            self.tab_button = self.tab_base.get_content()
-
-            self.base.enabled = False
-            self.page_parent.add_child(self.base)
-
-            def tab_pressed(button):
-                self.menu_manager.SwitchTab(self)
-            self.tab_button.register_pressed_callback(tab_pressed)
-
+            # upload components
             self.panel_list = self.base.find_node("SelectComplex")
             self.panel_upload = self.base.find_node("SelectType")
 
             button_pdb = self.base.find_node("PDB").get_content()
-            button_pdb.register_pressed_callback(partial(self.upload_complex, "PDB"))
+            button_pdb.register_pressed_callback(partial(self.UploadComplex, "PDB"))
             button_sdf = self.base.find_node("SDF").get_content()
-            button_sdf.register_pressed_callback(partial(self.upload_complex, "SDF"))
+            button_sdf.register_pressed_callback(partial(self.UploadComplex, "SDF"))
             button_mmcif = self.base.find_node("MMCIF").get_content()
-            button_mmcif.register_pressed_callback(partial(self.upload_complex, "MMCIF"))
-            
+            button_mmcif.register_pressed_callback(partial(self.UploadComplex, "MMCIF"))
+
             self.complex_list = self.base.find_node("ComplexList").get_content()
             self.selected_complex = None
-        
-        def populate_list(self, complexes):
+
+            self.select()
+
+        def UpdateBreadcrumbs(self, path):
+            self.breadcrumbs.text_value = path
+            MenuManager.RefreshMenu(self.breadcrumbs)
+
+        def AddItem(self, name, is_folder):
+            new_item = Prefabs.list_item_prefab.clone()
+            new_item.name = name
+            button = new_item.find_node("ButtonNode").get_content()
+            label = new_item.find_node("LabelNode").get_content()
+            label.text_value = name
+            button.item_name = name
+
+            if is_folder and name != '..':
+                label.text_value += '/'
+
+            def FilePressedCallback(button):
+                self.load_file_delegate(button.item_name)
+
+            def FolderPressedCallback(button):
+                MenuManager.instance.plugin.chdir(button.item_name)
+
+            cb = FolderPressedCallback if is_folder else FilePressedCallback
+            button.register_pressed_callback(cb)
+
+            self.file_list.items.append(new_item)
+
+        def RemoveItem(self, name):
+            items = self.file_list.items
+            for child in items:
+                if child.name == name:
+                    items.remove(child)
+                    break
+
+        def ToggleUpload(self, button=None, show=None):
+            show = not self.showing_upload if show is None else show
+            self.showing_upload = show
+            self.file_upload.enabled = show
+            self.file_explorer.enabled = not show
+            self.action_button.set_all_text('cancel' if show else 'upload here')
+
+            if show:
+                plugin = MenuManager.instance.plugin
+                plugin.request_complex_list(self.PopulateComplexes)
+                self.panel_list.enabled = True
+                self.panel_upload.enabled = False
+
+            MenuManager.RefreshMenu()
+
+        def PopulateComplexes(self, complexes):
+            def select_complex(button):
+                self.selected_complex = button.complex
+                self.panel_list.enabled = False
+                self.panel_upload.enabled = True
+                MenuManager.RefreshMenu()
+
             self.complex_list.items = []
             for complex in complexes:
                 item = Prefabs.list_item_prefab.clone()
@@ -255,31 +255,18 @@ class MenuManager(object):
                 label.text_value = complex.name
                 button = item.find_node("ButtonNode").get_content()
                 button.complex = complex
-                button.register_pressed_callback(self.select_complex)
+                button.register_pressed_callback(select_complex)
                 self.complex_list.items.append(item)
 
             MenuManager.RefreshMenu(self.complex_list)
 
-        def select_complex(self, button):
-            self.selected_complex = button.complex
-            self.panel_list.enabled = False
-            self.panel_upload.enabled = True
-            MenuManager.RefreshMenu()
-        
-        def upload_complex(self, save_type, button):
+        def UploadComplex(self, save_type, button):
             plugin = MenuManager.instance.plugin
             def save_func(complexes):
                 plugin.save_molecule(save_type, complexes[0])
+                self.ToggleUpload(show=False)
             plugin.request_complexes([self.selected_complex.index], save_func)
-            MenuManager.instance.SwitchTab()
-        
-        def select(self):
-            plugin = MenuManager.instance.plugin
-            plugin.request_complex_list(self.populate_list)
-            self.panel_list.enabled = True
-            self.panel_upload.enabled = False
-            MenuManager.Page.select(self)
-        
+
     class ImagePage(Page):
         def __init__(self, image, name):
             MenuManager.Page.__init__(self, name, Prefabs.tab_prefab, Prefabs.image_prefab)
@@ -317,4 +304,4 @@ class MenuManager(object):
             num_slides = len(self.images)
             self.current_slide = index
             self.ppt_content.file_path = self.images[index]
-            self.page_text.text_value = str(self.current_slide+1) +"/" + str(num_slides)
+            self.page_text.text_value = str(self.current_slide+1) + "/" + str(num_slides)

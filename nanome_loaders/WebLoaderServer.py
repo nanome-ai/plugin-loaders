@@ -7,6 +7,7 @@ import os
 import traceback
 import re
 import json
+import shutil
 from datetime import datetime, timedelta
 
 import nanome
@@ -32,7 +33,8 @@ def get_type(format):
     except:
         return Types[""]
 
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader-files')
+SERVER_DIR = os.path.join(os.path.dirname(__file__), 'WebUI/dist')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/shared')
 if not os.path.exists(FILES_DIR):
     os.mkdir(FILES_DIR)
 
@@ -116,46 +118,53 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except:
             Logs.warning("Connection reset while responding", self.client_address)
 
+    def _path_is_safe(self, base_path, sub_path):
+        safe = os.path.realpath(base_path)
+        path = os.path.realpath(os.path.join(base_path, sub_path))
+        common = os.path.commonprefix((safe, path))
+        return os.path.exists(path) and common == safe
+
     # Special GET case: get file list
-    def _send_list(self):
+    def _send_list(self, folder=None):
         if WebLoaderServer.keep_files_days > 0:
             self.file_cleanup()
+
+        path = FILES_DIR if folder is None else os.path.join(FILES_DIR, folder)
+        if not self._path_is_safe(FILES_DIR, path):
+            return self._send_json_error(404, 'File not found')
 
         self._set_headers(200, 'application/json')
         response = dict()
         response['success'] = True
-        response['file_list'] = []
-        file_list = [filename for filename in os.listdir(FILES_DIR) if WebLoaderServer.file_filter(filename)]
-        for file in file_list:
-            response['file_list'].append(file)
+        response['folders'] = []
+        response['files'] = []
+
+        items = [item for item in os.listdir(path) if not item.startswith('.')]
+        for item in items:
+            is_dir = os.path.isdir(os.path.join(path, item))
+            response['folders' if is_dir else 'files'].append(item)
+        response['folders'].sort()
+        response['files'].sort()
         self._write(json.dumps(response).encode("utf-8"))
 
     # Standard GET case: get a file
     def _try_get_resource(self, path):
-        old_path = os.getcwd()
+        if not self._path_is_safe(SERVER_DIR, path):
+            return self._send_json_error(404, 'File not found')
+
         try:
-            path_list = list(filter(None, path.split("/")))
-            for elem in path_list[:-1]: # Follow url path
-                if elem == "..": # A minimum security
-                    continue
-                os.chdir(elem)
-            file = path_list[-1]
-            format = file.split(".")[-1]
-            type_specs = get_type(format)  # Get Mime type and if binary type
-            # If binary type, open file in binary mode
-            f = open(file, 'rb' if type_specs[1] else 'r')
+            ext = path.split(".")[-1]
+            (mime, is_binary) = get_type(ext)
+            f = open(path, 'rb' if is_binary else 'r')
         except:
             self._set_headers(404)
-            os.chdir(old_path)
             return
 
-        os.chdir(old_path)
-        page = f.read()
-        # If binary type, don't try to decode page to str
-        to_send = page if type_specs[1] else page.encode("utf-8")
+        file = f.read()
+        data = file if is_binary else file.encode("utf-8")
 
-        self._set_headers(200, type_specs[0])
-        self._write(to_send)
+        self._set_headers(200, mime)
+        self._write(data)
         f.close()
 
     # Called on GET request
@@ -167,12 +176,17 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except:
             pass
 
-        if path == "/list":
-            self._send_list()
+        if path.startswith('/files'):
+            self._send_list(path[7:] or None)
             return
 
-        if path == "/":
-            path = "index.html"
+        # if path doesn't contain extension, serve index
+        if re.search(r'\.[^/]+$', path) is None:
+            path = 'index.html'
+        if path.startswith('/'):
+            path = path[1:]
+
+        path = os.path.join(SERVER_DIR, path)
         self._try_get_resource(path)
 
     def _send_json_success(self, code=200):
@@ -191,11 +205,27 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     # Called on POST request
     def do_POST(self):
         try:
+            parsed_url = urlparse(self.path)
+            path = parsed_url.path
+            path = urllib.parse.unquote(path)
+
             content_len = int(self.headers.get('Content-Length'))
             data = self.rfile.read(content_len)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
-            self._send_json_error(200, "Parsing problem")
+            self._send_json_error(400, "Parsing problem")
+            return
+
+        if not path.startswith('/files'):
+            self._send_json_error(403, "Forbidden")
+            return
+
+        folder = os.path.join(FILES_DIR, path[7:])
+
+        # no files provided, create folders
+        if not content_len:
+            os.makedirs(folder)
+            self._send_json_success()
             return
 
         data_manager = DataManager()
@@ -214,22 +244,30 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if file_name == "":
                 continue
 
-            file_name = os.path.join(FILES_DIR, file_name)
-
-            # If file already exists
-            if os.path.isfile(file_name):
-                self._send_json_error(200, file_name + " already exists")
-                return
-
             # If file is not supported
             if not WebLoaderServer.file_filter(file_name):
-                self._send_json_error(200, file_name + " format not supported")
+                self._send_json_error(400, file_name + " format not supported")
                 return
 
+            subfolder = os.path.join(folder, os.path.dirname(file_name))
+            if not os.path.exists(subfolder):
+                os.makedirs(subfolder)
+
+            file_path = os.path.join(folder, file_name)
+
+            # rename on duplicates: file.txt -> file (n).txt
+            reg = r'(.+/)([^/]+?)(?: \((\d+)\))?(\.\w+)'
+            (path, name, copy, ext) = re.search(reg, file_path).groups()
+            copy = 1 if copy is None else int(copy)
+
+            while os.path.isfile(file_path):
+                copy += 1
+                file_path = '%s%s (%d)%s' % (path, name, copy, ext)
+
             # Create file
-            f = open(file_name, "wb")
-            f.write(file_body)
-            f.close()
+            with open(file_path, "wb") as f:
+                f.write(file_body)
+
         self._send_json_success()
 
     @classmethod
@@ -297,21 +335,31 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Called on DELETE request
     def do_DELETE(self):
-        file = ""
         try:
             parsed_url = urlparse(self.path)
-            file = parsed_url.path[1:]
-            file = urllib.parse.unquote(file)
-            if file != "":
-                file = os.path.join(FILES_DIR, file)
+            path = parsed_url.path
+            path = urllib.parse.unquote(path)
         except:
             Logs.warning("Error trying to parse request:\n", traceback.format_exc())
             self._send_json_error(200, "Parsing problem")
             return
 
+        if not path.startswith('/files'):
+            self._send_json_error(403, "Forbidden")
+            return
+
+        path = path[7:]
+        if not path:
+            self._send_json_error(403, "Forbidden")
+            return
+
+        path = os.path.join(FILES_DIR, path)
+
         try:
-            if file != "" and WebLoaderServer.file_filter(file): # Make sure file to delete is a molecular file
-                os.remove(file)
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                shutil.rmtree(path)
         except:
             self._send_json_error(200, "Cannot find file to delete")
             return
@@ -332,12 +380,13 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         WebLoaderServer.last_cleanup = datetime.today()
         expiry_date = datetime.today() - timedelta(days=WebLoaderServer.keep_files_days)
 
-        for file_name in os.listdir(FILES_DIR):
-            file_path = os.path.join(FILES_DIR, file_name)
-            last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
+        for (dirpath, _, filenames) in os.walk(FILES_DIR):
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                last_accessed = datetime.fromtimestamp(os.path.getatime(file_path))
 
-            if last_accessed < expiry_date:
-                os.remove(file_path)
+                if last_accessed < expiry_date:
+                    os.remove(file_path)
 
 class WebLoaderServer():
     last_cleanup = datetime.fromtimestamp(0)
@@ -349,7 +398,7 @@ class WebLoaderServer():
 
     @staticmethod
     def file_filter(name):
-        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".pdf")
+        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".odp", ".pdf")
         return name.endswith(valid_ext)
 
     def start(self):
@@ -357,8 +406,6 @@ class WebLoaderServer():
 
     @classmethod
     def _start_process(cls, port):
-        dir = os.path.join(os.path.dirname(__file__), '_WebLoader')
-        os.chdir(dir)
         server = socketserver.TCPServer(("", port), RequestHandler)
         try:
             server.serve_forever()
