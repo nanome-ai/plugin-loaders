@@ -1,6 +1,54 @@
+import store from '@/store'
+const LOGIN_API = 'https://api.nanome.ai/user'
+
+function replaceAccount(path) {
+  return path.replace(/^\/account/, '/' + store.state.unique)
+}
+
+function request(url, options) {
+  return fetch(url, options).then(res => res.json())
+}
+
 const API = {
+  login({ username, password }) {
+    const body = {
+      login: username,
+      pass: password,
+      source: 'web:webloader-plugin'
+    }
+
+    return request(`${LOGIN_API}/login`, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method: 'POST',
+      body: JSON.stringify(body)
+    })
+  },
+
+  refresh() {
+    const token = store.state.token
+    if (!token) return {}
+
+    return request(`${LOGIN_API}/session`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      method: 'GET'
+    })
+  },
+
   list(path) {
-    return fetch('/files' + path).then(res => res.json())
+    if (path === '/') {
+      return {
+        success: true,
+        files: [],
+        folders: ['shared']
+      }
+    }
+
+    path = replaceAccount(path)
+    return request('/files' + path)
   },
 
   async getFolder(path) {
@@ -41,20 +89,23 @@ const API = {
       data.append('file', file)
     }
 
-    return fetch('/files' + path, {
+    path = replaceAccount(path)
+    return request('/files' + path, {
       method: 'POST',
       body: data
     })
   },
 
   delete(path) {
-    return fetch('/files' + path, {
+    path = replaceAccount(path)
+    return request('/files' + path, {
       method: 'DELETE'
     })
   },
 
   create(path) {
-    return fetch('/files' + path, {
+    path = replaceAccount(path)
+    return request('/files' + path, {
       method: 'POST'
     })
   }

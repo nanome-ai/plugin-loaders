@@ -12,7 +12,7 @@
       class="flex-grow relative select-none px-4"
       @contextmenu.prevent="showContextMenu({ event: $event, path })"
     >
-      <file-view-grid ref="grid" v-if="displayMode === 'grid'" :path="path" />
+      <file-view-grid v-if="displayMode === 'grid'" :path="path" />
       <file-view-list v-else :path="path" />
       <file-dropzone ref="dropzone" @upload="refresh" :path="path" />
     </div>
@@ -24,13 +24,19 @@
       :style="{ top: contextmenu.top, left: contextmenu.left }"
     >
       <ul>
-        <li v-if="contextmenu.path.slice(-1) === '/'">
+        <li v-if="contextmenu.isFolder">
           <button class="text-gray-800" @click="newFolder(contextmenu.path)">
             <fa-icon icon="folder-plus" />
             new folder
           </button>
         </li>
-        <li v-if="contextmenu.component">
+        <li v-else>
+          <button class="text-gray-800" @click="download(contextmenu.path)">
+            <fa-icon icon="file-download" />
+            download
+          </button>
+        </li>
+        <li v-if="contextmenu.deletable">
           <button class="text-red-500" @click="deleteItem">
             <fa-icon icon="trash" />
             delete
@@ -93,23 +99,50 @@ export default {
     },
 
     async newFolder(path) {
-      path = path || this.path
-      const folder = prompt(
-        `Creating folder in ${path}\nPlease provide a name:`,
-        'new folder'
-      )
+      this.hideContextMenu()
 
-      if (folder) {
-        await API.create(path + folder)
-        this.refresh()
+      path = path || this.path
+      if (path === '/') {
+        path = '/shared/'
       }
 
-      this.hideContextMenu()
+      const folder = await this.$modal.prompt({
+        title: 'New Folder',
+        body: `Creating folder in ${path}<br>Please provide a name:`,
+        default: 'new folder'
+      })
+
+      if (folder) {
+        const { success } = await API.create(path + folder)
+        if (!success) {
+          this.$modal.alert({
+            title: 'Name Already Exists',
+            body: 'Please select a different name'
+          })
+          return
+        }
+
+        if (path !== this.path) {
+          this.$router.push(path)
+        } else {
+          this.refresh()
+        }
+      }
     },
 
     async deleteItem() {
+      this.hideContextMenu()
+
       const path = this.contextmenu.path
-      if (confirm(`Are you sure you want to delete ${path}?`)) {
+      const confirm = await this.$modal.confirm({
+        title: 'Delete Item',
+        body: `Are you sure you want to delete ${path}?`,
+        okClass: 'danger',
+        okTitle: 'delete',
+        cancelClass: ''
+      })
+
+      if (confirm) {
         await API.delete(path)
         if (this.contextmenu.component) {
           this.contextmenu.component.refresh()
@@ -117,8 +150,13 @@ export default {
           this.refresh()
         }
       }
+    },
 
-      this.hideContextMenu()
+    async download(path) {
+      const a = document.createElement('a')
+      a.href = '/files' + path
+      a.download = path.substring(path.lastIndexOf('/') + 1)
+      a.click()
     },
 
     showContextMenu({ event, path, component }) {
@@ -127,6 +165,10 @@ export default {
       this.contextmenu.component = component
       this.contextmenu.top = event.pageY + 1 + 'px'
       this.contextmenu.left = event.pageX + 1 + 'px'
+
+      const deletable = component && !['/shared/', '/account/'].includes(path)
+      this.contextmenu.deletable = deletable
+      this.contextmenu.isFolder = this.contextmenu.path.slice(-1) === '/'
     },
 
     hideContextMenu() {

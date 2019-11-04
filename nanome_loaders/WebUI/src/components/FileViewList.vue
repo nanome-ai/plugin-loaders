@@ -21,12 +21,58 @@
               :icon="expanded[folder] ? 'folder-open' : 'folder'"
               class="icon mr-2"
             />
-            <div class="filename">{{ folder }}</div>
+            <div class="truncate">{{ folder }}</div>
           </router-link>
         </li>
 
         <li v-if="expanded[folder]" :key="folder + '-expanded'" class="pl-8">
           <file-view-list :path="`${path}${folder}/`" nested />
+        </li>
+      </template>
+
+      <template v-if="path == '/'">
+        <li class="p-2 flex items-center">
+          <fa-icon
+            icon="angle-right"
+            class="text-2xl w-8 cursor-pointer text-gray-500 hover:text-black"
+            fixed-width
+            @click="!unique ? $modal.login() : toggleFolder('account')"
+            :class="{ expanded: expanded['account'] }"
+          />
+
+          <a v-if="!unique" @click="$modal.login()" class="file">
+            <fa-layers class="icon mr-2">
+              <fa-icon icon="folder" />
+              <fa-icon
+                icon="lock"
+                class="text-white"
+                transform="down-1 shrink-11"
+              />
+            </fa-layers>
+            <div>account</div>
+          </a>
+
+          <router-link
+            v-else
+            to="/account/"
+            @contextmenu.native.prevent="contextmenu($event, 'account/')"
+            event="dblclick"
+            class="file cursor-default"
+          >
+            <fa-layers class="icon mr-2">
+              <fa-icon icon="folder" />
+              <fa-icon
+                icon="lock-open"
+                class="text-white"
+                transform="down-1 shrink-11"
+              />
+            </fa-layers>
+            <div>account</div>
+          </router-link>
+        </li>
+
+        <li v-if="expanded['account']" :key="'account-expanded'" class="pl-8">
+          <file-view-list v-if="unique" :path="`${path}account/`" nested />
         </li>
       </template>
 
@@ -46,17 +92,27 @@
             :value="file.ext"
           />
         </fa-layers>
-        <div class="filename">{{ file.full }}</div>
+        <div class="truncate">{{ file.full }}</div>
       </li>
     </ul>
 
-    <div v-else-if="!nested" class="text-xl py-4">
+    <div v-else-if="!nested" class="text-xl pt-8 pb-4">
+      <fa-layers class="text-6xl">
+        <fa-icon icon="folder" />
+        <fa-icon
+          icon="sad-tear"
+          class="text-white"
+          transform="down-1 shrink-10"
+        />
+      </fa-layers>
+      <br />
       this folder is empty
     </div>
   </div>
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import FileViewBase from '@/components/FileViewBase'
 import FileViewList from '@/components/FileViewList'
 import API from '@/api'
@@ -77,6 +133,10 @@ export default {
   data: () => ({
     expanded: {}
   }),
+
+  computed: {
+    ...mapState(['unique'])
+  },
 
   methods: {
     async beforeRefresh() {

@@ -8,14 +8,17 @@
     class="file-dropzone"
     :class="{ hover: isHovering }"
   >
-    <label class="message m-4">
+    <label
+      v-if="showDropzone || isUploading"
+      v-click-out="hide"
+      class="message m-4"
+    >
       <input
         class="visually-hidden"
         @change="onChange"
         :accept="extensions.join(',')"
         type="file"
         multiple
-        ref="input"
       />
       <div class="text-4xl">
         <template v-if="isUploading">
@@ -33,8 +36,8 @@
       </div>
       <button
         v-if="!numDropping && !isUploading"
-        @click="showDropzone = false"
-        class="text-2xl text-red-500"
+        @click="hide"
+        class="link text-2xl text-red-500"
       >
         cancel
       </button>
@@ -44,8 +47,8 @@
 
 <script>
 import API from '@/api'
-import { getFiles } from '@/files'
-import extensions from '@/extensions'
+import { getFiles } from '@/helpers/files'
+import extensions from '@/helpers/extensions'
 
 export default {
   props: {
@@ -105,28 +108,44 @@ export default {
       const skipped = []
       const upload = []
       for (const file of files) {
-        const isSupported = this.extensions.some(ext => file.name.endsWith(ext))
+        const isSupported = this.extensions.some(ext => {
+          return file.name.toLowerCase().endsWith(ext)
+        })
         isSupported ? upload.push(file) : skipped.push(file)
       }
 
       if (upload.length) {
-        await API.upload(this.path, upload)
+        const path = this.path === '/' ? '/shared/' : this.path
+        await API.upload(path, upload)
         this.$emit('upload')
+        if (path !== this.path) {
+          this.$router.push(path)
+        }
       }
 
       this.isUploading = false
       this.showDropzone = false
 
       if (!upload.length) {
-        alert('No supported files found. Skipping upload.')
+        this.$modal.alert({
+          title: 'Skipping Upload',
+          body: 'No supported files found. Skipping upload.'
+        })
       } else if (skipped.length) {
-        const list = skipped.map(f => f.name).join('\n')
-        alert(`${skipped.length} unsupported files skipped:\n${list}`)
+        const list = skipped.map(f => f.name).join('<br>')
+        this.$modal.alert({
+          title: 'Files Skipped',
+          body: `${skipped.length} unsupported files skipped:<br>${list}`
+        })
       }
     },
 
     show() {
       this.showDropzone = true
+    },
+
+    hide() {
+      this.showDropzone = false
     }
   }
 }

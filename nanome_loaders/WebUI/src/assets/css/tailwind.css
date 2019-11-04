@@ -12,6 +12,10 @@ h3 {
   @apply text-xl;
 }
 
+input {
+  @apply px-2 py-1 m-1 border rounded;
+}
+
 .visually-hidden {
   position: absolute;
   overflow: hidden;
@@ -23,6 +27,13 @@ h3 {
   padding: 0;
 }
 
+.link {
+  @apply cursor-pointer;
+}
+.link:hover {
+  @apply underline;
+}
+
 .grid {
   display: grid;
 }
@@ -30,9 +41,21 @@ h3 {
 .btn {
   @apply bg-gray-300 text-gray-800 py-2 px-4;
 }
+.btn.primary {
+  @apply bg-blue-500 text-white;
+}
+.btn.danger {
+  @apply bg-red-500 text-white;
+}
 
 .btn:hover:not(:disabled) {
   @apply bg-gray-400;
+}
+.btn.primary:hover:not(:disabled) {
+  @apply bg-blue-600;
+}
+.btn.danger:hover:not(:disabled) {
+  @apply bg-red-600;
 }
 
 .btn:disabled {

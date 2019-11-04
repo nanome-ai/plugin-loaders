@@ -12,7 +12,8 @@
     "@fortawesome/vue-fontawesome": "^0.1.7",
     "core-js": "^2.6.5",
     "vue": "^2.6.10",
-    "vue-router": "^3.0.3"
+    "vue-router": "^3.0.3",
+    "vuex": "^3.0.1"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^1.3.0",
@@ -23,12 +24,12 @@
     "tailwindcss": "^1.1.2",
     "vue-template-compiler": "^2.6.10"
   },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions"
-  ],
   "prettier": {
     "semi": false,
     "singleQuote": true
-  }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
 }
