@@ -75,7 +75,10 @@ class MenuManager(object):
     def ClearList(self):
         self.home_page.file_list.items.clear()
 
-    def UpdateList(self, files, folders):
+    def UpdateList(self, files, folders, can_upload):
+        self.home_page.action_button.unusable = not can_upload
+        self.Refresh(self.home_page.action_button)
+
         old_items = set(map(lambda item: item.name, self.home_page.file_list.items))
         new_items = folders + files
 
@@ -201,9 +204,12 @@ class MenuManager(object):
             new_item = Prefabs.list_item_prefab.clone()
             new_item.name = name
             button = new_item.find_node("ButtonNode").get_content()
-            label = new_item.find_node("LabelNode").get_content()
-            label.text_value = name
             button.item_name = name
+
+            plugin = MenuManager.instance.plugin
+            display_name = name.replace(plugin.account, 'account')
+            label = new_item.find_node("LabelNode").get_content()
+            label.text_value = display_name
 
             if is_folder and name != '..':
                 label.text_value += '/'

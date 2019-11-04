@@ -34,7 +34,7 @@ def get_type(format):
         return Types[""]
 
 SERVER_DIR = os.path.join(os.path.dirname(__file__), 'WebUI/dist')
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/shared')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader')
 if not os.path.exists(FILES_DIR):
     os.mkdir(FILES_DIR)
 
@@ -148,8 +148,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self._write(json.dumps(response).encode("utf-8"))
 
     # Standard GET case: get a file
-    def _try_get_resource(self, path):
-        if not self._path_is_safe(SERVER_DIR, path):
+    def _try_get_resource(self, base_dir, path):
+        path = os.path.join(base_dir, path)
+        if not self._path_is_safe(base_dir, path):
             return self._send_json_error(404, 'File not found')
 
         try:
@@ -176,18 +177,24 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except:
             pass
 
+        base_dir = SERVER_DIR
+        is_file = re.search(r'\.[^/]+$', path) is not None
+
         if path.startswith('/files'):
-            self._send_list(path[7:] or None)
-            return
+            if not is_file:
+                self._send_list(path[7:] or None)
+                return
+            else:
+                base_dir = FILES_DIR
+                path = path[7:]
 
         # if path doesn't contain extension, serve index
-        if re.search(r'\.[^/]+$', path) is None:
+        if not is_file:
             path = 'index.html'
         if path.startswith('/'):
             path = path[1:]
 
-        path = os.path.join(SERVER_DIR, path)
-        self._try_get_resource(path)
+        self._try_get_resource(base_dir, path)
 
     def _send_json_success(self, code=200):
         self._set_headers(code, 'application/json')
@@ -224,8 +231,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         # no files provided, create folders
         if not content_len:
-            os.makedirs(folder)
-            self._send_json_success()
+            if os.path.exists(folder):
+                self._send_json_error(400, "Name already exists")
+            else:
+                os.makedirs(folder)
+                self._send_json_success()
             return
 
         data_manager = DataManager()
@@ -406,6 +416,7 @@ class WebLoaderServer():
 
     @classmethod
     def _start_process(cls, port):
+        socketserver.TCPServer.allow_reuse_address = True
         server = socketserver.TCPServer(("", port), RequestHandler)
         try:
             server.serve_forever()
