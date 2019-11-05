@@ -129,7 +129,7 @@ export default {
       if (!upload.length) {
         this.$modal.alert({
           title: 'Skipping Upload',
-          body: 'No supported files found. Skipping upload.'
+          body: 'No supported files found.<br>Skipping upload.'
         })
       } else if (skipped.length) {
         const list = skipped.map(f => f.name).join('<br>')
