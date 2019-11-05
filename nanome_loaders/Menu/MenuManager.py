@@ -172,8 +172,11 @@ class MenuManager(object):
             self.action_button = self.base.find_node("ActionButton").get_content()
             self.action_button.register_pressed_callback(self.ToggleUpload)
 
-            instruction_label = self.base.find_node("InstructionLabel").get_content()
-            instruction_label.text_value = "Add files by visiting " + address + " in your browser"
+            self.ins_add_files = "Visit %s in browser to add files" % address
+            self.ins_select_complex = "Select complex from workspace"
+
+            self.instructions = self.base.find_node("InstructionLabel").get_content()
+            self.instructions.text_value = self.ins_add_files
             self.breadcrumbs = self.base.find_node("Breadcrumbs").get_content()
 
             self.file_explorer = self.base.find_node("FileExplorer")
@@ -237,7 +240,8 @@ class MenuManager(object):
             self.showing_upload = show
             self.file_upload.enabled = show
             self.file_explorer.enabled = not show
-            self.action_button.set_all_text('cancel' if show else 'upload here')
+            self.action_button.set_all_text('Cancel' if show else 'Upload Here')
+            self.instructions.text_value = self.ins_select_complex if show else self.ins_add_files
 
             if show:
                 plugin = MenuManager.instance.plugin
