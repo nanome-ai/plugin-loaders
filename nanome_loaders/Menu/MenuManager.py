@@ -262,7 +262,7 @@ class MenuManager(object):
             for complex in complexes:
                 item = Prefabs.list_item_prefab.clone()
                 label = item.find_node("LabelNode").get_content()
-                label.text_value = complex.name
+                label.text_value = complex.full_name
                 button = item.find_node("ButtonNode").get_content()
                 button.complex = complex
                 button.register_pressed_callback(select_complex)

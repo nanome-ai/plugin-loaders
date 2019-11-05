@@ -186,7 +186,7 @@ def main():
     server.start()
 
     # Plugin
-    plugin = nanome.Plugin("Load from Web", "Gives access to a folder of molecules that can be modified by a Web UI", "Loading", False)
+    plugin = nanome.Plugin("Load from Web", "Use your browser to upload files and folders to make them available in Nanome.", "Loading", False)
     plugin.set_plugin_class(WebLoader)
     plugin.run('127.0.0.1', 8888)
 
