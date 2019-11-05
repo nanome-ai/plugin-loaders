@@ -58,7 +58,6 @@ class WebLoader(nanome.PluginInstance):
         if self.current_dir != FILES_DIR:
             files = [item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)]
             folders = [item for item in items if isdir(item)]
-            folders.insert(0, '..')
         else:
             folders = ['shared', self.account]
             can_upload = False
@@ -66,14 +65,19 @@ class WebLoader(nanome.PluginInstance):
         self.menu_manager.UpdateList(files, folders, can_upload)
 
     def chdir(self, folder):
-        self.current_dir = os.path.abspath(os.path.join(self.current_dir, folder))
         self.menu_manager.ClearList()
+        self.current_dir = os.path.abspath(os.path.join(self.current_dir, folder))
+
+        common = os.path.commonprefix((FILES_DIR, self.current_dir))
+        if common != FILES_DIR:
+            self.current_dir = FILES_DIR
+        at_root = self.current_dir == FILES_DIR
 
         # calculate breadcrumbs
         subpath = self.current_dir[len(FILES_DIR) + 1 :]
         subpath = subpath.replace(self.account, 'account')
-        path = 'folder: / ' + subpath.replace('/', ' / ')
-        self.menu_manager.home_page.UpdateBreadcrumbs(path)
+        path = 'files / ' + subpath.replace('/', ' / ')
+        self.menu_manager.home_page.UpdateBreadcrumbs(path, at_root)
 
         self.__refresh()
 

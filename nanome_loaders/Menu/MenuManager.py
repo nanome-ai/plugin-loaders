@@ -7,6 +7,7 @@ MENU_PATH = dir_path + "/WebLoad.json"
 PPT_TAB_PATH = dir_path + "/PPTTab.json"
 IMAGE_TAB_PATH = dir_path + "/ImageTab.json"
 LIST_ITEM_PATH = dir_path + "/ListItem.json"
+UP_ICON_PATH = dir_path + "/UpIcon.png"
 
 class Prefabs(object):
     tab_prefab = None
@@ -76,8 +77,8 @@ class MenuManager(object):
         self.home_page.file_list.items.clear()
 
     def UpdateList(self, files, folders, can_upload):
-        self.home_page.action_button.unusable = not can_upload
-        self.Refresh(self.home_page.action_button)
+        self.home_page.upload_button.unusable = not can_upload
+        self.Refresh(self.home_page.upload_button)
 
         old_items = set(map(lambda item: item.name, self.home_page.file_list.items))
         new_items = folders + files
@@ -169,11 +170,27 @@ class MenuManager(object):
                 self.menu_manager.SwitchTab(self)
             self.tab_button.register_pressed_callback(tab_pressed)
 
-            self.action_button = self.base.find_node("ActionButton").get_content()
-            self.action_button.register_pressed_callback(self.ToggleUpload)
+            def open_url(button):
+                self.menu_manager.plugin.open_url(address)
+            url_button = self.base.find_node("URLButton").get_content()
+            url_button.register_pressed_callback(open_url)
+
+            def go_up(button):
+                self.menu_manager.plugin.chdir('..')
+                self.ToggleUpload(show=False)
+            self.up_button = self.base.find_node("GoUpButton").get_content()
+            self.up_button.register_pressed_callback(go_up)
+
+            self.up_button.unusable = True
+            self.up_button.set_all_icon(UP_ICON_PATH)
+            self.up_button.icon.size = 0.5
+            self.up_button.icon.color_unusable = nanome.util.Color.Grey()
+
+            self.upload_button = self.base.find_node("UploadButton").get_content()
+            self.upload_button.register_pressed_callback(self.ToggleUpload)
 
             self.ins_add_files = "Visit %s in browser to add files" % address
-            self.ins_select_complex = "Select complex from workspace"
+            self.ins_select_complex = "Select a structure from the workspace"
 
             self.instructions = self.base.find_node("InstructionLabel").get_content()
             self.instructions.text_value = self.ins_add_files
@@ -199,9 +216,11 @@ class MenuManager(object):
 
             self.select()
 
-        def UpdateBreadcrumbs(self, path):
+        def UpdateBreadcrumbs(self, path, at_root):
             self.breadcrumbs.text_value = path
             MenuManager.RefreshMenu(self.breadcrumbs)
+            self.up_button.unusable = at_root
+            MenuManager.RefreshMenu(self.up_button)
 
         def AddItem(self, name, is_folder):
             new_item = Prefabs.list_item_prefab.clone()
@@ -214,7 +233,7 @@ class MenuManager(object):
             label = new_item.find_node("LabelNode").get_content()
             label.text_value = display_name
 
-            if is_folder and name != '..':
+            if is_folder:
                 label.text_value += '/'
 
             def FilePressedCallback(button):
@@ -240,7 +259,7 @@ class MenuManager(object):
             self.showing_upload = show
             self.file_upload.enabled = show
             self.file_explorer.enabled = not show
-            self.action_button.set_all_text('Cancel' if show else 'Upload Here')
+            self.upload_button.set_all_text('Cancel' if show else 'Upload Here')
             self.instructions.text_value = self.ins_select_complex if show else self.ins_add_files
 
             if show:
@@ -267,6 +286,15 @@ class MenuManager(object):
                 button.complex = complex
                 button.register_pressed_callback(select_complex)
                 self.complex_list.items.append(item)
+
+            if not complexes:
+                # empty ln for spacing
+                self.complex_list.items.append(nanome.ui.LayoutNode())
+                ln = nanome.ui.LayoutNode()
+                lbl = ln.add_new_label("no structures found in workspace")
+                lbl.text_horizontal_align = lbl.HorizAlignOptions.Middle
+                lbl.text_max_size = 0.4
+                self.complex_list.items.append(ln)
 
             MenuManager.RefreshMenu(self.complex_list)
 
