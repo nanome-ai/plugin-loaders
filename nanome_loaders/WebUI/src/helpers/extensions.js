@@ -1,1 +1,1 @@
-export default ['.pdb', '.sdf', '.cif', '.ppt', '.pptx', '.odp', '.pdf']
+export default ['.pdb', '.sdf', '.cif', '.ppt', '.pptx', '.odp', '.pdf', '.png', '.jpg']
