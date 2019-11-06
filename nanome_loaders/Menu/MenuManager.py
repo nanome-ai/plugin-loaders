@@ -99,8 +99,8 @@ class MenuManager(object):
             self.home_page.AddItem(item, item in folders)
             changed = True
 
-        if changed:
-            self.Refresh()
+        if changed or not len(old_items):
+            self.Refresh(self.home_page.file_list)
 
     def GetFiles(self):
         return list(map(lambda item: item.name, self.home_page.file_list.items))
