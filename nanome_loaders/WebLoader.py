@@ -116,8 +116,10 @@ class WebLoader(nanome.PluginInstance):
             complex = Complex.io.from_mmcif(path=file_path)
             complex.name = complex_name
             self.add_bonds([complex], self.bonds_ready)
-        elif extension == "ppt" or extension == "pptx" or extension == "pdf":
+        elif extension in ["ppt", "pptx", "odp", "pdf"]:
             self.display_ppt(file_path)
+        elif extension in ["png", "jpg"]:
+            self.display_image(file_path)
         else:
             Logs.warning("Unknown file extension for file", name)
             return
@@ -172,6 +174,10 @@ class WebLoader(nanome.PluginInstance):
             #cleanup ppt_reader
             pass
         ppt_reader.Convert(done_delegate, error_delegate)
+
+    def display_image(self, path):
+        name = os.path.basename(path)
+        self.menu_manager.OpenPage(PageTypes.Image, path, name)
 
 def main():
     # Plugin server (for Web)

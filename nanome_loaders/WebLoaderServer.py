@@ -408,7 +408,7 @@ class WebLoaderServer():
 
     @staticmethod
     def file_filter(name):
-        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".odp", ".pdf")
+        valid_ext = (".pdb", ".sdf", ".cif", ".ppt", ".pptx", ".odp", ".pdf", ".png", ".jpg")
         return name.endswith(valid_ext)
 
     def start(self):
