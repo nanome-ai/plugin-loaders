@@ -13,15 +13,15 @@ from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
 DEFAULT_KEEP_FILES_DAYS = 0
-FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader/shared')
+FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader')
 
 # Plugin instance (for Nanome)
 class WebLoader(nanome.PluginInstance):
     def start(self):
         self.running = False
         self.ppt_readers = {}
-        self.files_dir = FILES_DIR
-        self.current_dir = self.files_dir
+        self.current_dir = FILES_DIR
+        self.account = 'user-00000000'
         self.on_run()
 
     def update(self):
@@ -51,22 +51,33 @@ class WebLoader(nanome.PluginInstance):
         def isdir(item):
             return os.path.isdir(os.path.join(self.current_dir, item))
 
-        files = [item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)]
-        folders = [item for item in items if isdir(item)]
+        files = []
+        folders = []
+        can_upload = True
 
-        if self.current_dir != self.files_dir:
-            folders.insert(0, '..')
+        if self.current_dir != FILES_DIR:
+            files = [item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)]
+            folders = [item for item in items if isdir(item)]
+        else:
+            folders = ['shared', self.account]
+            can_upload = False
 
-        self.menu_manager.UpdateList(files, folders)
+        self.menu_manager.UpdateList(files, folders, can_upload)
 
     def chdir(self, folder):
-        self.current_dir = os.path.abspath(os.path.join(self.current_dir, folder))
         self.menu_manager.ClearList()
+        self.current_dir = os.path.abspath(os.path.join(self.current_dir, folder))
+
+        common = os.path.commonprefix((FILES_DIR, self.current_dir))
+        if common != FILES_DIR:
+            self.current_dir = FILES_DIR
+        at_root = self.current_dir == FILES_DIR
 
         # calculate breadcrumbs
-        subpath = self.current_dir[len(self.files_dir):]
-        path = 'folder: shared' + subpath.replace('/', ' / ')
-        self.menu_manager.home_page.UpdateBreadcrumbs(path)
+        subpath = self.current_dir[len(FILES_DIR) + 1 :]
+        subpath = subpath.replace(self.account, 'account')
+        path = 'files / ' + subpath.replace('/', ' / ')
+        self.menu_manager.home_page.UpdateBreadcrumbs(path, at_root)
 
         self.__refresh()
 
@@ -76,6 +87,17 @@ class WebLoader(nanome.PluginInstance):
         self.chdir('.')
         self.__timer = timer()
         self.big_timer = timer()
+        self.on_presenter_change()
+
+    def on_presenter_change(self):
+        self.request_presenter_info(self.update_account)
+
+    def update_account(self, info):
+        self.account = info.account_id
+        account_dir = os.path.join(FILES_DIR, self.account)
+        if not os.path.exists(account_dir):
+            os.makedirs(account_dir)
+        self.__refresh()
 
     def load_molecule(self, name):
         complex_name = '.'.join(name.split(".")[:-1])
@@ -117,6 +139,7 @@ class WebLoader(nanome.PluginInstance):
 
     def send_complexes(self, complex_list):
         self.add_to_workspace(complex_list)
+        self.send_notification(NotificationTypes.success, complex_list[0].name + " loaded")
 
     @staticmethod
     def get_server_url():
@@ -167,7 +190,7 @@ def main():
     server.start()
 
     # Plugin
-    plugin = nanome.Plugin("Load from Web", "Gives access to a folder of molecules that can be modified by a Web UI", "Loading", False)
+    plugin = nanome.Plugin("Load from Web", "Use your browser to upload files and folders to make them available in Nanome.", "Loading", False)
     plugin.set_plugin_class(WebLoader)
     plugin.run('127.0.0.1', 8888)
 
