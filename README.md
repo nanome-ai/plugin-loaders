@@ -12,6 +12,7 @@ Web Loader currently supports:
 - Molecules: .pdb, .cif, .sdf
 - Presentations: .pptx, .ppt, .odp
 - Documents: .pdf
+- Images: .png .jpg
 
 ### Installation
 
