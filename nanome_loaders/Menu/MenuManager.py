@@ -311,6 +311,7 @@ class MenuManager(object):
             self.type = PageTypes.Image
             self.image = image
             self.image_content = self.base.find_node("ImageContent").add_new_image(image)
+            self.image_content.scaling_option = nanome.util.enums.ScalingOptions.fit
 
     class PPTPage(Page):
         def __init__(self, images, name):
