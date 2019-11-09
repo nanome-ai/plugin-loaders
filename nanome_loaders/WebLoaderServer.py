@@ -35,8 +35,8 @@ def get_type(format):
 
 SERVER_DIR = os.path.join(os.path.dirname(__file__), 'WebUI/dist')
 FILES_DIR = os.path.expanduser('~/Documents/nanome-web-loader')
-if not os.path.exists(FILES_DIR):
-    os.makedirs(FILES_DIR)
+if not os.path.exists(os.path.join(FILES_DIR, 'shared')):
+    os.makedirs(os.path.join(FILES_DIR, 'shared'))
 
 class DataManager(object):
     def __init__(self):
