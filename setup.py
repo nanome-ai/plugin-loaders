@@ -6,7 +6,7 @@ README = (pathlib.Path(__file__).parent / "README.md").read_text()
 setup(
 	name = 'nanome-loaders',
 	packages=find_packages(),
-	version = '1.0.0',
+	version = '1.0.1',
 	license='MIT',
 	description = 'Nanome Plugin deploying a few molecule loaders integrated with Nanome',
 	long_description = README,
