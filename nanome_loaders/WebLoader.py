@@ -56,8 +56,9 @@ class WebLoader(nanome.PluginInstance):
         can_upload = True
 
         if self.current_dir != FILES_DIR:
-            files = [item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)]
-            folders = [item for item in items if isdir(item)]
+            lowercase = lambda s: s.lower()
+            files = sorted([item for item in items if not isdir(item) and WebLoaderServer.file_filter(item)], key=lowercase)
+            folders = sorted([item for item in items if isdir(item)], key=lowercase)
         else:
             folders = ['shared', self.account]
             can_upload = False
