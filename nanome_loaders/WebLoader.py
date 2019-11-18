@@ -9,6 +9,7 @@ from .PPTConverter import PPTConverter
 import sys
 import os
 import socket
+from functools import partial
 from timeit import default_timer as timer
 
 DEFAULT_SERVER_PORT = 80
@@ -100,7 +101,7 @@ class WebLoader(nanome.PluginInstance):
             os.makedirs(account_dir)
         self.__refresh()
 
-    def load_molecule(self, name):
+    def load_molecule(self, name, callback=None):
         complex_name = '.'.join(name.split(".")[:-1])
         extension = name.split(".")[-1]
         file_path = os.path.join(self.current_dir, name)
@@ -108,19 +109,19 @@ class WebLoader(nanome.PluginInstance):
         if extension == "pdb":
             complex = Complex.io.from_pdb(path=file_path)
             complex.name = complex_name
-            self.add_bonds([complex], self.bonds_ready)
+            self.add_bonds([complex], partial(self.bonds_ready, callback=callback))
         elif extension == "sdf":
             complex = Complex.io.from_sdf(path=file_path)
             complex.name = complex_name
-            self.bonds_ready([complex])
+            self.bonds_ready([complex], callback)
         elif extension == "cif":
             complex = Complex.io.from_mmcif(path=file_path)
             complex.name = complex_name
-            self.add_bonds([complex], self.bonds_ready)
+            self.add_bonds([complex], partial(self.bonds_ready, callback=callback))
         elif extension in ["ppt", "pptx", "odp", "pdf"]:
-            self.display_ppt(file_path)
+            self.display_ppt(file_path, callback)
         elif extension in ["png", "jpg"]:
-            self.display_image(file_path)
+            self.display_image(file_path, callback)
         else:
             Logs.warning("Unknown file extension for file", name)
             return
@@ -137,12 +138,13 @@ class WebLoader(nanome.PluginInstance):
 
         self.send_notification(NotificationTypes.success, complex.name + " saved")
 
-    def bonds_ready(self, complex_list):
-        self.add_dssp(complex_list, self.send_complexes)
+    def bonds_ready(self, complex_list, callback):
+        self.add_dssp(complex_list, partial(self.send_complexes, callback=callback))
 
-    def send_complexes(self, complex_list):
+    def send_complexes(self, complex_list, callback):
         self.add_to_workspace(complex_list)
         self.send_notification(NotificationTypes.success, complex_list[0].name + " loaded")
+        callback()
 
     @staticmethod
     def get_server_url():
@@ -159,7 +161,7 @@ class WebLoader(nanome.PluginInstance):
             ip += ":" + str(DEFAULT_SERVER_PORT)
         return ip
 
-    def display_ppt(self, file_name):
+    def display_ppt(self, file_name, callback):
         key = os.path.basename(file_name) + str(os.path.getmtime(file_name))
         if key in self.ppt_readers:
             ppt_reader = self.ppt_readers[key]
@@ -171,14 +173,16 @@ class WebLoader(nanome.PluginInstance):
                 self.menu_manager.OpenPage(PageTypes.Image, images[0], file_name)
             elif len(images) > 1:
                 self.menu_manager.OpenPage(PageTypes.PPT, images, file_name)
+            callback()
         def error_delegate():
             #cleanup ppt_reader
             pass
         ppt_reader.Convert(done_delegate, error_delegate)
 
-    def display_image(self, path):
+    def display_image(self, path, callback):
         name = os.path.basename(path)
         self.menu_manager.OpenPage(PageTypes.Image, path, name)
+        callback()
 
 def main():
     # Plugin server (for Web)

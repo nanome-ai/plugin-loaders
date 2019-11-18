@@ -197,7 +197,15 @@ class MenuManager(object):
             self.breadcrumbs = self.base.find_node("Breadcrumbs").get_content()
 
             self.file_explorer = self.base.find_node("FileExplorer")
-            self.file_list = self.base.find_node("FileList").get_content()
+
+            ln_file_list = self.base.find_node("FileList")
+            self.file_list = ln_file_list.get_content()
+            self.file_list.parent = ln_file_list
+
+            ln_file_loading = self.base.find_node("FileLoading")
+            self.file_loading = ln_file_loading.get_content()
+            self.file_loading.parent = ln_file_loading
+
             self.file_upload = self.base.find_node("FileUpload")
 
             # upload components
@@ -237,7 +245,17 @@ class MenuManager(object):
                 label.text_value += '/'
 
             def FilePressedCallback(button):
-                self.load_file_delegate(button.item_name)
+                self.file_list.parent.enabled = False
+                self.file_loading.parent.enabled = True
+                self.file_loading.text_value = 'loading...\n' + button.item_name
+                MenuManager.RefreshMenu()
+
+                def OnFileLoaded():
+                    self.file_list.parent.enabled = True
+                    self.file_loading.parent.enabled = False
+                    MenuManager.RefreshMenu()
+
+                self.load_file_delegate(button.item_name, OnFileLoaded)
 
             def FolderPressedCallback(button):
                 MenuManager.instance.plugin.chdir(button.item_name)
