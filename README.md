@@ -1,4 +1,4 @@
-# Nanome - Loaders
+# Nanome - Loaders [Deprecated]
 
 ### A Web-Loader plugin for Nanome to load files through a URL or a Drag-and-Drop Web Interface.
 
